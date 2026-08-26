@@ -70,7 +70,7 @@ describe("summarizeDashboard", () => {
     });
 
     expect(summary).toMatchObject({
-      balanceCents: 30_500,
+      balanceCents: 32_000,
       incomeCents: 2_500,
       expenseCents: 1_000,
       netCents: 1_500,

@@ -26,12 +26,12 @@ export default async function CategoriesPage() {
           <h3>Nova categoria</h3>
           <form action={createCategory} className="crud-form">
             <label>
-              Nome
-              <input name="name" placeholder="Ex.: Saúde" required />
+              Nome <small>(obrigatório)</small>
+              <input name="name" placeholder="Ex.: Saúde" required aria-required="true" />
             </label>
             <label>
               Cor
-              <input name="color" type="color" defaultValue="#5d8e63" />
+              <input name="color" type="color" defaultValue="#5d8e63" aria-label="Escolha uma cor para a categoria" />
             </label>
             <button className="primary-button">Criar categoria</button>
           </form>

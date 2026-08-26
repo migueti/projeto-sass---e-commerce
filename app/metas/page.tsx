@@ -36,21 +36,23 @@ export default async function GoalsPage() {
           <h3>Nova meta</h3>
           <form action={createGoal} className="crud-form">
             <label>
-              Nome
+              Nome <small>(obrigatório)</small>
               <input
                 name="name"
                 placeholder="Ex.: Reserva de emergência"
                 required
+                aria-required="true"
               />
             </label>
             <div className="form-row">
               <label>
-                Valor alvo
+                Valor alvo <small>(obrigatório)</small>
                 <input
                   name="target"
                   inputMode="decimal"
                   placeholder="18.000,00"
                   required
+                  aria-required="true"
                 />
               </label>
               <label>
