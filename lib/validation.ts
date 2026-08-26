@@ -26,7 +26,7 @@ export function parseBrazilianCents(value: string) {
   const raw = value.trim().replace(/^r\$\s?/i, "");
   if (!raw) return null;
 
-  const match = /^(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,3}))?$/.exec(raw);
+  const match = /^(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,2}))?$/.exec(raw);
   if (!match) return null;
 
   const normalized = `${match[1].replace(/\./g, "")}.${match[2] ?? "0"}`;
@@ -42,12 +42,12 @@ export function parseLocalDate(value: string) {
   if (!match) return null;
 
   const [, year, month, day] = match;
-  const date = new Date(`${value}T12:00:00`);
+  const date = new Date(`${value}T12:00:00.000Z`);
   if (
     Number.isNaN(date.getTime()) ||
-    date.getFullYear() !== Number(year) ||
-    date.getMonth() !== Number(month) - 1 ||
-    date.getDate() !== Number(day)
+    date.getUTCFullYear() !== Number(year) ||
+    date.getUTCMonth() !== Number(month) - 1 ||
+    date.getUTCDate() !== Number(day)
   ) {
     return null;
   }

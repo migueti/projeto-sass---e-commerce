@@ -28,4 +28,14 @@ describe("getNextRecurrenceDate", () => {
       date("2026-02-28"),
     );
   });
+
+  it("returns to the scheduled day after a short month", () => {
+    const scheduledDay = 30;
+    expect(
+      getNextRecurrenceDate(date("2026-01-30"), "MONTHLY", scheduledDay),
+    ).toEqual(date("2026-02-28"));
+    expect(
+      getNextRecurrenceDate(date("2026-02-28"), "MONTHLY", scheduledDay),
+    ).toEqual(date("2026-03-30"));
+  });
 });

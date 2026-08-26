@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
 import { NextResponse } from "next/server";
@@ -39,6 +40,10 @@ export async function GET(request: Request) {
   try {
     const user = await requireUser();
     const params = new URL(request.url).searchParams;
+    const format = params.get("format") ?? "xlsx";
+    if (format !== "pdf" && format !== "xlsx") {
+      return NextResponse.json({ error: "Formato inválido." }, { status: 400 });
+    }
     const filters = parseDashboardFilters(params);
     const { start, end } = getDashboardDateRange(filters.period);
     const rows = await prisma.transaction.findMany({
@@ -46,15 +51,12 @@ export async function GET(request: Request) {
       include: { account: { select: { name: true } }, category: { select: { name: true } } },
       orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
     });
-    const format = params.get("format") ?? "xlsx";
     const title = `Lançamentos · ${filters.period === "year" ? "Este ano" : filters.period === "30days" ? "Últimos 30 dias" : "Este mês"}`;
 
     if (format === "pdf") {
       const buffer = await createPdf(rows, title);
       return new Response(new Uint8Array(buffer), { headers: { "Content-Type": "application/pdf", "Content-Disposition": 'attachment; filename="nuvem-lancamentos.pdf"' } });
     }
-    if (format !== "xlsx") return NextResponse.json({ error: "Formato inválido." }, { status: 400 });
-
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Lançamentos");
     sheet.columns = [{ header: "Descrição", key: "description", width: 32 }, { header: "Tipo", key: "type", width: 14 }, { header: "Valor", key: "amount", width: 18 }, { header: "Data", key: "date", width: 16 }, { header: "Conta", key: "account", width: 22 }, { header: "Categoria", key: "category", width: 20 }];
@@ -68,6 +70,7 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     if (error instanceof Error && error.message === "INVALID_PERIOD") return NextResponse.json({ error: "Período inválido." }, { status: 400 });
+    Sentry.captureException(error);
     return NextResponse.json({ error: "Não foi possível gerar a exportação." }, { status: 500 });
   }
 }

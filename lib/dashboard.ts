@@ -14,14 +14,14 @@ export function getDashboardDateRange(
   referenceDate = new Date(),
 ) {
   const end = new Date(referenceDate);
-  end.setHours(23, 59, 59, 999);
+  end.setUTCHours(23, 59, 59, 999);
   const start = new Date(end);
 
-  if (period === "30days") start.setDate(start.getDate() - 29);
-  else if (period === "year") start.setMonth(0, 1);
-  else start.setDate(1);
+  if (period === "30days") start.setUTCDate(start.getUTCDate() - 29);
+  else if (period === "year") start.setUTCMonth(0, 1);
+  else start.setUTCDate(1);
 
-  start.setHours(0, 0, 0, 0);
+  start.setUTCHours(0, 0, 0, 0);
   return { start, end };
 }
 
@@ -37,6 +37,7 @@ export async function getDashboard(userId: string, filters: DashboardFilters) {
     userId,
     occurredAt: { lt: start },
     ...(filters.accountId ? { accountId: filters.accountId } : {}),
+    ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
   };
 
   const [accounts, periodTransactions, historicalTransactions, goals, nextRecurrence] = await prisma.$transaction([

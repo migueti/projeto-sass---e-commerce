@@ -1,8 +1,39 @@
 {
-  "servers": {
-    "playwright": {
-      "command": "npx",
-      "args": ["@playwright/mcp@latest"]
-    }
-  }
+	"servers": {
+		"playwright": {
+			"command": "npx",
+			"args": [
+				"@playwright/mcp@latest"
+			],
+			"type": "stdio"
+		},
+		"sequential-thinking": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@modelcontextprotocol/server-sequential-thinking"
+			],
+			"type": "stdio"
+		},
+		"io.github.getsentry/sentry-mcp": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"@sentry/mcp-server@0.25.0"
+			],
+			"env": {
+				"SENTRY_ACCESS_TOKEN": "${input:SENTRY_ACCESS_TOKEN}"
+			},
+			"gallery": "https://api.mcp.github.com",
+			"version": "0.25.0"
+		}
+	},
+	"inputs": [
+		{
+			"id": "SENTRY_ACCESS_TOKEN",
+			"type": "promptString",
+			"description": "Your Sentry user authentication token",
+			"password": true
+		}
+	]
 }

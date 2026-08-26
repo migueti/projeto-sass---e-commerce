@@ -135,6 +135,7 @@ model RecurringTransaction {
   description    String
   cents          Int
   frequency      RecurrenceFrequency
+  dayOfMonth     Int?
   nextOccurrence DateTime
   endAt          DateTime?
   active         Boolean            @default(true)

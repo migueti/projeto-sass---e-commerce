@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/auth";
@@ -14,6 +15,7 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     if (error instanceof Error && error.message === "INVALID_PERIOD") return NextResponse.json({ error: "Período inválido." }, { status: 400 });
+    Sentry.captureException(error);
     return NextResponse.json({ error: "Não foi possível carregar o dashboard." }, { status: 500 });
   }
 }
