@@ -1,0 +1,19 @@
+import { NextResponse } from "next/server";
+
+import { requireUser } from "@/lib/auth";
+import { getDashboard, parseDashboardFilters } from "@/lib/dashboard";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function GET(request: Request) {
+  try {
+    const user = await requireUser();
+    const filters = parseDashboardFilters(new URL(request.url).searchParams);
+    return NextResponse.json(await getDashboard(user.id, filters));
+  } catch (error) {
+    if (error instanceof Error && error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    if (error instanceof Error && error.message === "INVALID_PERIOD") return NextResponse.json({ error: "Período inválido." }, { status: 400 });
+    return NextResponse.json({ error: "Não foi possível carregar o dashboard." }, { status: 500 });
+  }
+}

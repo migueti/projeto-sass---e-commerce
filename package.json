@@ -1,0 +1,40 @@
+{
+  "name": "projeto-sass---e-commerce",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --configLoader runner",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "^2.11.3",
+    "@prisma/client": "^6.19.0",
+    "bcryptjs": "^3.0.3",
+    "exceljs": "^4.4.0",
+    "next": "16.3.3",
+    "next-auth": "^4.24.15",
+    "pdfkit": "^0.20.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/pdfkit": "^0.17.6",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.3",
+    "prisma": "^6.19.0",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^4.1.11"
+  }
+}
