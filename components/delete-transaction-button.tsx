@@ -10,13 +10,18 @@ export function DeleteTransactionButton({ id }: { id: string }) {
   async function handleDelete() {
     setPending(true);
     setError("");
-    const response = await fetch(`/api/transactions/${id}`, { method: "DELETE" });
-    if (!response.ok) {
-      setError("Não foi possível excluir.");
+    try {
+      const response = await fetch(`/api/transactions/${id}`, { method: "DELETE" });
+      if (!response.ok) {
+        setError("Não foi possível excluir.");
+        return;
+      }
+      window.location.reload();
+    } catch {
+      setError("Não foi possível conectar ao servidor.");
+    } finally {
       setPending(false);
-      return;
     }
-    window.location.reload();
   }
 
   if (confirming) {
