@@ -67,6 +67,9 @@ export default function Home() {
   const [activeNav, setActiveNav] = useState("Visão geral");
   const [showBalance, setShowBalance] = useState(true);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState(false);
+  const [dashboardRetry, setDashboardRetry] = useState(0);
   const [userName, setUserName] = useState("Sua conta");
   const [sessionReady, setSessionReady] = useState(false);
   const periodParam =
@@ -87,19 +90,34 @@ export default function Home() {
           .toUpperCase();
 
   useEffect(() => {
-    fetch(
-      `/api/dashboard?period=${periodParam}`,
-    )
+    let active = true;
+
+    fetch(`/api/dashboard?period=${periodParam}`)
       .then((response) => {
         if (response.status === 401 || response.redirected) {
           router.push("/login");
           return Promise.reject(new Error("unauthorized"));
         }
-        return response.ok ? response.json() : Promise.reject(new Error("dashboard"));
+        return response.ok
+          ? response.json()
+          : Promise.reject(new Error("dashboard"));
       })
-      .then(setDashboard)
-      .catch(() => setDashboard(null));
-  }, [periodParam, router]);
+      .then((data: DashboardData) => {
+        if (!active) return;
+        setDashboard(data);
+        setDashboardError(false);
+      })
+      .catch(() => {
+        if (active) setDashboardError(true);
+      })
+      .finally(() => {
+        if (active) setDashboardLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [periodParam, router, dashboardRetry]);
 
   useEffect(() => {
     fetch("/api/me")
@@ -119,6 +137,14 @@ export default function Home() {
 
   if (!sessionReady) {
     return <main className="auth-page"><div className="auth-brand"><span className="brand-mark">✳</span> nuvem<span>.</span></div><p className="heading-copy">Carregando seu espaço financeiro...</p></main>;
+  }
+
+  if (dashboardLoading && !dashboard) {
+    return <main className="auth-page"><div className="auth-brand"><span className="brand-mark">✳</span> nuvem<span>.</span></div><p className="heading-copy">Carregando seu resumo financeiro...</p></main>;
+  }
+
+  if (dashboardError && !dashboard) {
+    return <main className="auth-page"><div className="auth-brand"><span className="brand-mark">✳</span> nuvem<span>.</span></div><p className="form-error">Não foi possível carregar seu resumo financeiro.</p><button className="primary-button" onClick={() => { setDashboardLoading(true); setDashboardError(false); setDashboardRetry((value) => value + 1); }} disabled={dashboardLoading}>Tentar novamente</button></main>;
   }
 
   return (
@@ -190,6 +216,14 @@ export default function Home() {
           </div>
         </header>
         <div className="content-wrap">
+          {dashboardError && (
+            <div className="panel" role="alert">
+              <p className="form-error">Não foi possível atualizar o resumo financeiro.</p>
+              <button className="primary-button" onClick={() => { setDashboardLoading(true); setDashboardError(false); setDashboardRetry((value) => value + 1); }} disabled={dashboardLoading}>
+                {dashboardLoading ? "Atualizando..." : "Tentar novamente"}
+              </button>
+            </div>
+          )}
           <div className="page-heading">
             <div>
               <p className="eyebrow">

@@ -21,10 +21,13 @@ export const transactionSchema = z.object({
 });
 
 export function parseBrazilianCents(value: string) {
-  const raw = value.replace(/R\$\s?/g, "").trim();
-  if (!raw || !/^[0-9.,]+$/.test(raw)) return null;
+  const raw = value.trim().replace(/^R\$\s?/, "");
+  if (!raw) return null;
 
-  const normalized = raw.replace(/\./g, "").replace(",", ".");
+  const match = /^(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,3}))?$/.exec(raw);
+  if (!match) return null;
+
+  const normalized = `${match[1].replace(/\./g, "")}.${match[2] ?? "0"}`;
   const amount = Number(normalized);
   if (!Number.isFinite(amount) || amount <= 0) return null;
 

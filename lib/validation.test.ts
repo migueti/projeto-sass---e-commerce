@@ -17,6 +17,8 @@ describe("parseBrazilianCents", () => {
     expect(parseBrazilianCents("")).toBeNull();
     expect(parseBrazilianCents("abc")).toBeNull();
     expect(parseBrazilianCents("1e3")).toBeNull();
+    expect(parseBrazilianCents("10,00,5")).toBeNull();
+    expect(parseBrazilianCents("1.23,45")).toBeNull();
     expect(parseBrazilianCents("0")).toBeNull();
     expect(parseBrazilianCents("-12,50")).toBeNull();
   });

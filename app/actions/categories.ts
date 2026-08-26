@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { requireUser } from "@/lib/auth";
@@ -22,7 +23,13 @@ export async function createCategory(formData: FormData) {
   });
   if (existing) throw new Error("Você já possui uma categoria com esse nome.");
 
-  await prisma.category.create({ data: { ...result.data, userId: user.id } });
+  try {
+    await prisma.category.create({ data: { ...result.data, userId: user.id } });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")
+      throw new Error("Você já possui uma categoria com esse nome.");
+    throw error;
+  }
   revalidatePath("/categorias");
   revalidatePath("/");
 }
@@ -33,5 +40,6 @@ export async function deleteCategory(id: string) {
   if (result.count !== 1) throw new Error("Categoria não encontrada.");
   revalidatePath("/categorias");
   revalidatePath("/lancamentos");
+  revalidatePath("/recorrencias");
   revalidatePath("/");
 }

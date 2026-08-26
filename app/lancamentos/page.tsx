@@ -6,12 +6,15 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseLocalDate } from "@/lib/validation";
 
-export default async function TransactionsPage({ searchParams }: { searchParams: Promise<{ type?: string; accountId?: string; categoryId?: string; from?: string; to?: string }> }) {
+const pageSize = 30;
+
+export default async function TransactionsPage({ searchParams }: { searchParams: Promise<{ type?: string; accountId?: string; categoryId?: string; from?: string; to?: string; page?: string }> }) {
   const user = await requireUser();
   const filters = await searchParams;
   const type: TransactionType | undefined = filters.type === "INCOME" || filters.type === "EXPENSE" ? filters.type : undefined;
   const accountId = filters.accountId || undefined;
   const categoryId = filters.categoryId || undefined;
+  const page = Math.max(1, Number.parseInt(filters.page ?? "1", 10) || 1);
   const from = filters.from && parseLocalDate(filters.from) ? filters.from : undefined;
   const to = filters.to && parseLocalDate(filters.to) ? filters.to : undefined;
   const fromDate = from ? parseLocalDate(from) : null;
@@ -28,7 +31,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
     ...(categoryId ? { categoryId } : {}),
     ...dateFilter,
   };
-  const [accounts, categories, transactions] = await Promise.all([
+  const [accounts, categories, transactions, transactionCount] = await Promise.all([
     prisma.financialAccount.findMany({
       where: { userId: user.id },
       orderBy: { name: "asc" },
@@ -40,10 +43,23 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
     prisma.transaction.findMany({
       where: transactionFilters,
       include: { account: true, category: true },
-      orderBy: { occurredAt: "desc" },
-      take: 30,
+      orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     }),
+    prisma.transaction.count({ where: transactionFilters }),
   ]);
+  const totalPages = Math.max(1, Math.ceil(transactionCount / pageSize));
+  const makePageHref = (nextPage: number) => {
+    const params = new URLSearchParams();
+    if (type) params.set("type", type);
+    if (accountId) params.set("accountId", accountId);
+    if (categoryId) params.set("categoryId", categoryId);
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    params.set("page", String(nextPage));
+    return `/lancamentos?${params.toString()}`;
+  };
 
   return (
     <main className="content-wrap">
@@ -157,7 +173,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
         <div className="panel-header">
           <div>
             <h3>Lançamentos recentes</h3>
-            <p>{transactions.length} registro(s) encontrado(s)</p>
+            <p>{transactionCount} registro(s) encontrado(s)</p>
           </div>
         </div>
         <form method="get" className="filter-form">
@@ -199,6 +215,13 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                 <DeleteTransactionButton id={transaction.id} />
               </div>
             ))}
+          </div>
+        )}
+        {transactionCount > pageSize && (
+          <div className="pagination" aria-label="Paginação de lançamentos">
+            {page > 1 ? <Link className="text-button" href={makePageHref(page - 1)}>← Anterior</Link> : <span />}
+            <span>Página {page} de {totalPages}</span>
+            {page < totalPages ? <Link className="text-button" href={makePageHref(page + 1)}>Próxima →</Link> : <span />}
           </div>
         )}
       </section>

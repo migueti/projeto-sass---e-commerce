@@ -15,6 +15,10 @@ const goalSchema = z.object({
   accountId: z.string().optional(),
 });
 
+const contributionSchema = z.object({
+  amount: z.string().trim().min(1, "Informe o valor do aporte."),
+});
+
 export async function createGoal(formData: FormData) {
   const user = await requireUser();
   const result = goalSchema.safeParse(Object.fromEntries(formData));
@@ -62,6 +66,37 @@ export async function deleteGoal(id: string) {
   const user = await requireUser();
   const result = await prisma.financialGoal.deleteMany({ where: { id, userId: user.id } });
   if (result.count !== 1) throw new Error("Meta não encontrada.");
+  revalidatePath("/metas");
+  revalidatePath("/");
+}
+
+export async function addGoalContribution(id: string, formData: FormData) {
+  const user = await requireUser();
+  const result = contributionSchema.safeParse(Object.fromEntries(formData));
+  if (!result.success)
+    throw new Error(result.error.issues[0]?.message ?? "Confira o valor do aporte.");
+
+  const cents = parseBrazilianCents(result.data.amount);
+  if (!cents) throw new Error("Informe um aporte válido maior que zero.");
+
+  await prisma.$transaction(async (transaction) => {
+    const goal = await transaction.financialGoal.findFirst({
+      where: { id, userId: user.id },
+      select: { savedCents: true, targetCents: true },
+    });
+    if (!goal) throw new Error("Meta não encontrada.");
+    const savedCents = goal.savedCents + cents;
+    if (savedCents > goal.targetCents)
+      throw new Error("O aporte não pode superar o valor alvo.");
+
+    await transaction.financialGoal.update({
+      where: { id },
+      data: {
+        savedCents,
+        status: savedCents === goal.targetCents ? "COMPLETED" : "ACTIVE",
+      },
+    });
+  });
   revalidatePath("/metas");
   revalidatePath("/");
 }

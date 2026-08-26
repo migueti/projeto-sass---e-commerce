@@ -1,4 +1,4 @@
-import { createGoal, deleteGoal } from "@/app/actions/goals";
+import { addGoalContribution, createGoal, deleteGoal } from "@/app/actions/goals";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -114,6 +114,12 @@ export default async function GoalsPage() {
                         ? `Prazo: ${new Intl.DateTimeFormat("pt-BR").format(goal.deadline)}`
                         : "Sem prazo definido"}
                     </small>
+                    {goal.status === "ACTIVE" && (
+                      <form action={addGoalContribution.bind(null, goal.id)} className="goal-contribution">
+                        <input name="amount" inputMode="decimal" placeholder="Aporte: 100,00" aria-label={`Valor do aporte para ${goal.name}`} required />
+                        <button className="text-button" type="submit">Adicionar aporte</button>
+                      </form>
+                    )}
                     <form action={deleteGoal.bind(null, goal.id)}>
                       <button className="delete-button" type="submit" aria-label={`Excluir meta ${goal.name}`}>×</button>
                     </form>

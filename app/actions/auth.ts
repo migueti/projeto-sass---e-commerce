@@ -1,6 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
@@ -19,21 +20,27 @@ export async function registerUser(_state: { error?: string; success?: boolean }
   if (existingUser) return { error: "Este e-mail já está cadastrado." };
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-  await prisma.user.create({
-    data: {
-      name: parsed.data.name,
-      email: parsed.data.email,
-      passwordHash,
-      categories: {
-        create: [
-          { name: "Casa", color: "#5d8e63" },
-          { name: "Alimentação", color: "#e78c7d" },
-          { name: "Transporte", color: "#9284b5" },
-          { name: "Lazer", color: "#e0c98f" },
-        ],
+  try {
+    await prisma.user.create({
+      data: {
+        name: parsed.data.name,
+        email: parsed.data.email,
+        passwordHash,
+        categories: {
+          create: [
+            { name: "Casa", color: "#5d8e63" },
+            { name: "Alimentação", color: "#e78c7d" },
+            { name: "Transporte", color: "#9284b5" },
+            { name: "Lazer", color: "#e0c98f" },
+          ],
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")
+      return { error: "Este e-mail já está cadastrado." };
+    return { error: "Não foi possível criar sua conta agora." };
+  }
 
   return { success: true };
 }
