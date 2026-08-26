@@ -2,7 +2,9 @@ import { z } from "zod";
 
 export const accountSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome da conta."),
-  type: z.string().trim().min(2, "Informe o tipo da conta."),
+  type: z.enum(["checking", "savings", "cash"], {
+    message: "Informe um tipo de conta válido.",
+  }),
   initialAmount: z.string().optional(),
 });
 
@@ -21,7 +23,7 @@ export const transactionSchema = z.object({
 });
 
 export function parseBrazilianCents(value: string) {
-  const raw = value.trim().replace(/^R\$\s?/, "");
+  const raw = value.trim().replace(/^r\$\s?/i, "");
   if (!raw) return null;
 
   const match = /^(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,3}))?$/.exec(raw);

@@ -42,6 +42,10 @@ Aplicativo de controle financeiro pessoal em português. Permite acompanhar cont
    npm run db:generate
    ```
 
+   O SQLite local será criado em `prisma/dev.db`. Cada fork começa com um banco
+   vazio: crie uma conta pela tela de cadastro. Não copie bancos de outros
+   usuários.
+
 5. Inicie o servidor:
 
    ```bash
@@ -70,6 +74,7 @@ npm run lint         # ESLint
 npm run typecheck    # verificação TypeScript
 npm test             # suíte Vitest
 npm run db:migrate   # aplica migrações Prisma
+npm run db:deploy    # aplica migrações em produção/CI
 npm run db:generate  # gera o cliente Prisma
 ```
 
@@ -87,6 +92,47 @@ npx vitest run --configLoader runner lib/validation.test.ts
 - `components/`: componentes compartilhados
 
 Valores monetários são armazenados como inteiros em centavos. Datas de formulários usam o parser compartilhado para evitar deslocamentos de fuso horário.
+
+## Ambiente e deploy
+
+Antes de publicar, configure as variáveis de ambiente na plataforma:
+
+- `DATABASE_URL`: caminho do banco ou URL de um banco compatível.
+- `NEXTAUTH_SECRET`: segredo longo, aleatório e exclusivo do ambiente.
+- `NEXTAUTH_URL`: URL pública exata da aplicação, nunca `localhost` em produção.
+
+Execute `npm run db:deploy` no ambiente de produção antes de iniciar a aplicação.
+Depois, execute `npm run build` e `npm run start`, ou use os comandos equivalentes
+da plataforma escolhida.
+
+O projeto usa SQLite. Em um deploy público, o arquivo precisa ficar em um volume
+persistente com backup; plataformas com filesystem efêmero podem perder o banco
+após um novo deploy. Para produção sem volume persistente, use um banco externo
+compatível e atualize `DATABASE_URL`.
+
+## Segurança dos dados locais
+
+`.env`, `prisma/dev.db` e os arquivos auxiliares do SQLite são ignorados pelo Git.
+Eles podem conter segredos, hashes de senha, sessões e dados financeiros. Nunca
+envie esses arquivos ao repositório ou para outro usuário. O banco original não é
+necessário para instalar ou executar o projeto.
+
+## Diagnóstico rápido
+
+- Se o dashboard mostrar `R$ 0,00`, confirme que você está conectado ao usuário
+   correto e que existem conta e lançamentos no banco desse ambiente.
+- Se o layout aparecer sem cards ou gráficos, confirme que `app/globals.css`
+   está sendo carregado e reinicie o servidor de desenvolvimento.
+- Se o logout abrir `localhost`, corrija `NEXTAUTH_URL` para o domínio atual e
+   faça um novo deploy.
+- Após mudanças no código, atualize a página publicada com recarga forçada e
+   verifique os logs do servidor.
+
+## CI
+
+O workflow em `.github/workflows/ci.yml` executa instalação reproduzível, testes,
+typecheck, lint e build em cada push e pull request. Um fork deve manter o
+`package-lock.json` versionado para que o `npm ci` seja determinístico.
 
 ## Antes de publicar
 

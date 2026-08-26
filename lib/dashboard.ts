@@ -35,6 +35,7 @@ export async function getDashboard(userId: string, filters: DashboardFilters) {
   };
   const historicalWhere = {
     userId,
+    occurredAt: { lt: start },
     ...(filters.accountId ? { accountId: filters.accountId } : {}),
   };
 

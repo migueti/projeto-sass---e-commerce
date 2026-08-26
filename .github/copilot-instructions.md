@@ -28,6 +28,7 @@ npx vitest run --configLoader runner lib/dashboard.test.ts
 
 # Database commands
 npm run db:migrate   # apply Prisma migrations
+  npm run db:deploy    # apply migrations in production/CI
 npm run db:generate  # regenerate Prisma client
 ```
 
@@ -61,6 +62,17 @@ Vitest uses the `runner` config loader; use it for any additional targeted file,
 - Recurrence processing must remain transactional and concurrency-safe: claim the current `nextOccurrence` before creating generated transactions, enforce the overdue-occurrence cap, and deactivate at `endAt`.
 - Dashboard and export endpoints should use `parseDashboardFilters` and `getDashboardDateRange` so period, account, and category filtering stays consistent.
 - The app is primarily Portuguese-language in route names and UI copy, so keep feature naming and validation messages aligned with the existing patterns.
+
+## Fork and deployment safeguards
+
+- A fresh fork must create its own `.env` from `.env.example`; generate a unique `NEXTAUTH_SECRET` and set `NEXTAUTH_URL` to the real domain for that environment.
+- `DATABASE_URL="file:./dev.db"` resolves to `prisma/dev.db`. Run `npm run db:migrate` locally and `npm run db:deploy` in production or CI, then run `npm run db:generate`.
+- Never commit or share `.env`, `prisma/dev.db`, SQLite journal files, password hashes, sessions, or financial data. The repository intentionally has no seed and each fork starts with an empty database.
+- SQLite production deployments require persistent storage and backups. If the platform has an ephemeral filesystem, configure an external compatible database instead of relying on a local file.
+- When diagnosing dashboard regressions, validate the database and API data before changing CSS. The dashboard request path is `app/page.tsx` -> `/api/dashboard` -> `lib/dashboard.ts` -> `lib/dashboard-summary.ts`.
+- The total balance must include initial balance, historical transactions before the selected period, and the selected period's income minus expenses. Keep the historical query constrained with `occurredAt: { lt: start }`.
+- Logout must remain same-origin in hosted environments; avoid callback URLs that resolve to local `NEXTAUTH_URL` when the app is accessed through a public preview domain.
+- Keep `package-lock.json` versioned. The GitHub Actions workflow runs `npm ci`, tests, typecheck, lint, and build.
 
 ## Relevant domain model summary
 

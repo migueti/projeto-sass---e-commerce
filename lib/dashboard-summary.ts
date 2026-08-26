@@ -86,7 +86,7 @@ export function summarizeDashboard<
   }
 
   return {
-    balanceCents: initialCents + historicalCents,
+    balanceCents: initialCents + historicalCents + incomeCents - expenseCents,
     incomeCents,
     expenseCents,
     netCents: incomeCents - expenseCents,

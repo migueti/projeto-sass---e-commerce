@@ -9,6 +9,7 @@ import {
 describe("parseBrazilianCents", () => {
   it("converts Brazilian currency formats into cents", () => {
     expect(parseBrazilianCents("R$ 1.234,56")).toBe(123456);
+    expect(parseBrazilianCents("r$ 1.234,56")).toBe(123456);
     expect(parseBrazilianCents("10,005")).toBe(1001);
     expect(parseBrazilianCents("25")).toBe(2500);
   });
@@ -38,6 +39,15 @@ describe("form schemas", () => {
         initialAmount: "",
       }),
     ).toMatchObject({ name: "Conta principal" });
+
+    expect(
+      accountSchema.safeParse({
+        name: "Cartão",
+        type: "credit",
+        initialAmount: "",
+      }).success,
+    ).toBe(false);
+
     expect(
       transactionSchema.safeParse({
         description: "Compra",

@@ -188,7 +188,10 @@ export default function Home() {
         <div className="sidebar-bottom">
           <button
             className="nav-item"
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={async () => {
+              await signOut({ redirect: false });
+              router.replace("/login");
+            }}
           >
             <span className="nav-icon">↪</span>Sair
           </button>

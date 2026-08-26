@@ -36,12 +36,12 @@ export default async function AccountsPage() {
           <h3>Nova conta</h3>
           <form action={createAccount} className="crud-form">
             <label>
-              Nome
-              <input name="name" placeholder="Ex.: Nubank" required />
+              Nome <small>(obrigatório)</small>
+              <input name="name" placeholder="Ex.: Nubank" required aria-required="true" />
             </label>
             <label>
-              Tipo
-              <select name="type" defaultValue="checking">
+              Tipo <small>(obrigatório)</small>
+              <select name="type" defaultValue="checking" required aria-required="true">
                 <option value="checking">Conta corrente</option>
                 <option value="savings">Poupança</option>
                 <option value="cash">Carteira</option>
@@ -49,7 +49,7 @@ export default async function AccountsPage() {
             </label>
             <label>
               Saldo inicial
-              <input name="initialAmount" inputMode="decimal" placeholder="0,00" />
+              <input name="initialAmount" inputMode="decimal" placeholder="0,00" aria-label="Saldo inicial da conta em reais" />
             </label>
             <button className="primary-button">Adicionar conta</button>
           </form>
