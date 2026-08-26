@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { getNextRecurrenceDate } from "@/lib/recurrence";
 
-const date = (value: string) => new Date(`${value}T12:00:00`);
+const date = (value: string) => new Date(`${value}T12:00:00.000Z`);
 
 describe("getNextRecurrenceDate", () => {
   it("keeps monthly schedules on the last day of the month", () => {

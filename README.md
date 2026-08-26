@@ -84,6 +84,19 @@ kill <PID>
 
 Não versione `.env` nem o banco local. Use `.env.example` como referência.
 
+## MCP do Obsidian
+
+O workspace já inclui o servidor `obsidian` em `.vscode/mcp.json`. Para ativá-lo:
+
+1. Instale e ative o plugin Obsidian MCP Server no Obsidian.
+2. Confirme a porta configurada, normalmente `27123`.
+3. Ao iniciar o servidor MCP no VS Code, informe o token pelo prompt protegido.
+4. Recarregue os servidores MCP para conectar em `http://localhost:27123/mcp`.
+
+O token não deve ser salvo no repositório nem enviado pelo chat. Se a autenticação
+estiver desativada no plugin para desenvolvimento local, remova o header
+`Authorization` da configuração do servidor.
+
 ## Comandos
 
 ```bash

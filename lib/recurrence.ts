@@ -7,28 +7,24 @@ export function getNextRecurrenceDate(
 ) {
   const next = new Date(date);
   if (frequency === "WEEKLY") {
-    next.setDate(next.getDate() + 7);
+    next.setUTCDate(next.getUTCDate() + 7);
     return next;
   }
 
-  const day = scheduledDay ?? next.getDate();
+  const day = scheduledDay ?? next.getUTCDate();
   const sourceLastDay = new Date(
-    next.getFullYear(),
-    next.getMonth() + 1,
-    0,
-  ).getDate();
+    Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 0),
+  ).getUTCDate();
   const staysAtMonthEnd =
     scheduledDay === undefined && day === sourceLastDay;
 
-  next.setDate(1);
-  if (frequency === "MONTHLY") next.setMonth(next.getMonth() + 1);
-  else next.setFullYear(next.getFullYear() + 1);
+  next.setUTCDate(1);
+  if (frequency === "MONTHLY") next.setUTCMonth(next.getUTCMonth() + 1);
+  else next.setUTCFullYear(next.getUTCFullYear() + 1);
 
   const targetLastDay = new Date(
-    next.getFullYear(),
-    next.getMonth() + 1,
-    0,
-  ).getDate();
-  next.setDate(staysAtMonthEnd ? targetLastDay : Math.min(day, targetLastDay));
+    Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  next.setUTCDate(staysAtMonthEnd ? targetLastDay : Math.min(day, targetLastDay));
   return next;
 }

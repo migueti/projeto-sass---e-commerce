@@ -57,7 +57,7 @@ export async function createRecurrence(formData: FormData) {
       type: result.data.type,
       frequency: result.data.frequency,
       dayOfMonth:
-        result.data.frequency === "WEEKLY" ? null : nextOccurrence.getDate(),
+        result.data.frequency === "WEEKLY" ? null : nextOccurrence.getUTCDate(),
       nextOccurrence,
       endAt,
     },

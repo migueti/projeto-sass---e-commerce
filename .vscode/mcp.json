@@ -15,6 +15,13 @@
 			],
 			"type": "stdio"
 		},
+		"obsidian": {
+			"type": "http",
+			"url": "https://repair-wrench-racing.ngrok-free.dev/mcp",
+			"headers": {
+				"Authorization": "Bearer ${input:OBSIDIAN_MCP_TOKEN}"
+			}
+		},
 		"io.github.getsentry/sentry-mcp": {
 			"type": "stdio",
 			"command": "npx",
@@ -33,6 +40,12 @@
 			"id": "SENTRY_ACCESS_TOKEN",
 			"type": "promptString",
 			"description": "Your Sentry user authentication token",
+			"password": true
+		},
+		{
+			"id": "OBSIDIAN_MCP_TOKEN",
+			"type": "promptString",
+			"description": "Token de autenticação do Obsidian MCP Server",
 			"password": true
 		}
 	]
