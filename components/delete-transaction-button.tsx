@@ -4,15 +4,35 @@ import { useState } from "react";
 
 export function DeleteTransactionButton({ id }: { id: string }) {
   const [pending, setPending] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleDelete() {
-    if (!window.confirm("Excluir este lançamento? Essa ação não pode ser desfeita.")) return;
     setPending(true);
+    setError("");
     const response = await fetch(`/api/transactions/${id}`, { method: "DELETE" });
-    if (!response.ok) window.alert("Não foi possível excluir o lançamento.");
-    else window.location.reload();
-    setPending(false);
+    if (!response.ok) {
+      setError("Não foi possível excluir.");
+      setPending(false);
+      return;
+    }
+    window.location.reload();
   }
 
-  return <button className="delete-button" type="button" onClick={handleDelete} disabled={pending} aria-label="Excluir lançamento">{pending ? "..." : "×"}</button>;
+  if (confirming) {
+    return (
+      <span className="delete-confirmation">
+        <span>Excluir?</span>
+        <button className="text-button" type="button" onClick={handleDelete} disabled={pending}>
+          {pending ? "Excluindo..." : "Confirmar"}
+        </button>
+        <button className="cancel-button" type="button" onClick={() => setConfirming(false)} disabled={pending}>
+          Cancelar
+        </button>
+        {error && <span className="form-error" role="alert">{error}</span>}
+      </span>
+    );
+  }
+
+  return <button className="delete-button" type="button" onClick={() => { setError(""); setConfirming(true); }} disabled={pending} aria-label="Excluir lançamento">×</button>;
 }

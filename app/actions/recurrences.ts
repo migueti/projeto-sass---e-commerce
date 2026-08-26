@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getNextRecurrenceDate } from "@/lib/recurrence";
 import { parseBrazilianCents, parseLocalDate } from "@/lib/validation";
 
 const recurrenceSchema = z.object({
@@ -63,24 +64,6 @@ export async function createRecurrence(formData: FormData) {
   revalidatePath("/");
 }
 
-function nextDate(date: Date, frequency: "WEEKLY" | "MONTHLY" | "YEARLY") {
-  const next = new Date(date);
-  if (frequency === "WEEKLY") next.setDate(next.getDate() + 7);
-  else {
-    const day = next.getDate();
-    next.setDate(1);
-    if (frequency === "MONTHLY") next.setMonth(next.getMonth() + 1);
-    else next.setFullYear(next.getFullYear() + 1);
-    const lastDay = new Date(
-      next.getFullYear(),
-      next.getMonth() + 1,
-      0,
-    ).getDate();
-    next.setDate(Math.min(day, lastDay));
-  }
-  return next;
-}
-
 export async function processRecurrence(id: string) {
   const user = await requireUser();
   const recurrence = await prisma.recurringTransaction.findFirst({
@@ -99,7 +82,7 @@ export async function processRecurrence(id: string) {
     occurrences.push(nextOccurrence);
     if (occurrences.length > 1_200)
       throw new Error("Há muitas ocorrências pendentes para processar de uma vez.");
-    nextOccurrence = nextDate(nextOccurrence, recurrence.frequency);
+    nextOccurrence = getNextRecurrenceDate(nextOccurrence, recurrence.frequency);
   }
   const shouldFinish = Boolean(
     recurrence.endAt && nextOccurrence > recurrence.endAt,
