@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum RecurrenceFrequency {
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+model User {
+  id            String                @id @default(cuid())
+  name          String?
+  email         String                @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  categories    Category[]
+  wallets       FinancialAccount[]
+  transactions  Transaction[]
+  recurrences   RecurringTransaction[]
+  goals         FinancialGoal[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+model Category {
+  id           String        @id @default(cuid())
+  userId       String
+  name         String
+  color        String?
+  icon         String?
+  createdAt    DateTime      @default(now())
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  recurrences  RecurringTransaction[]
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model FinancialAccount {
+  id           String        @id @default(cuid())
+  userId       String
+  name         String
+  type         String        @default("checking")
+  initialCents Int           @default(0)
+  color        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  recurrences  RecurringTransaction[]
+  goals        FinancialGoal[]
+  @@index([userId])
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  userId      String
+  accountId   String
+  categoryId  String?
+  type        TransactionType
+  description String
+  cents       Int
+  occurredAt  DateTime
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account     FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  category    Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  @@index([userId, occurredAt])
+  @@index([userId, accountId])
+  @@index([userId, categoryId])
+}
+
+model RecurringTransaction {
+  id             String             @id @default(cuid())
+  userId         String
+  accountId      String
+  categoryId     String?
+  type           TransactionType
+  description    String
+  cents          Int
+  frequency      RecurrenceFrequency
+  nextOccurrence DateTime
+  endAt          DateTime?
+  active         Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account        FinancialAccount  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  category       Category?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  @@index([userId, nextOccurrence])
+}
+
+model FinancialGoal {
+  id            String           @id @default(cuid())
+  userId        String
+  accountId     String?
+  name          String
+  targetCents   Int
+  savedCents    Int              @default(0)
+  deadline      DateTime?
+  status        GoalStatus       @default(ACTIVE)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account       FinancialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  @@index([userId, status])
+}
