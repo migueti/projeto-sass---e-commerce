@@ -268,6 +268,9 @@ export default function Home() {
                 <span className="label">SALDO TOTAL</span>
                 <button
                   className="eye-button"
+                  type="button"
+                  aria-label={showBalance ? "Ocultar saldo" : "Mostrar saldo"}
+                  aria-pressed={!showBalance}
                   onClick={() => setShowBalance(!showBalance)}
                 >
                   {showBalance ? "◉" : "◌"}
@@ -447,6 +450,21 @@ function CashFlow({ flow }: { flow: DashboardData["monthlyFlow"] }) {
               </div>
             ))}
           </div>
+          <table className="chart-data">
+            <caption>Valores mensais do fluxo de caixa</caption>
+            <thead>
+              <tr><th>Mês</th><th>Receitas</th><th>Despesas</th></tr>
+            </thead>
+            <tbody>
+              {flow.map((item) => (
+                <tr key={item.month}>
+                  <th scope="row">{monthLabel(item.month)}</th>
+                  <td>{formatCurrency(item.incomeCents / 100)}</td>
+                  <td>{formatCurrency(item.expenseCents / 100)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
           <div className="x-labels">
             {flow.map((item) => <span key={item.month}>{monthLabel(item.month)}</span>)}
           </div>
@@ -468,7 +486,7 @@ function CategoryBreakdown({
           <h3>Despesas por categoria</h3>
           <p>Onde seu dinheiro está indo</p>
         </div>
-        <button className="dots">•••</button>
+        <button className="dots" type="button" aria-label="Mais opções de categorias">•••</button>
       </div>
       <div className="donut-wrap">
         <div className="donut">
