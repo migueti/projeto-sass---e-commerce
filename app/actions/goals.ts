@@ -22,10 +22,10 @@ export async function createGoal(formData: FormData) {
     throw new Error(result.error.issues[0]?.message ?? "Confira os dados.");
 
   const targetCents = parseBrazilianCents(result.data.target);
-  const savedCents = result.data.saved
-    ? (parseBrazilianCents(result.data.saved) ?? 0)
-    : 0;
+  const savedInput = result.data.saved?.trim();
+  const savedCents = savedInput ? parseBrazilianCents(savedInput) : 0;
   if (!targetCents) throw new Error("Informe um valor alvo válido.");
+  if (savedCents === null) throw new Error("Informe um valor guardado válido.");
   if (savedCents > targetCents)
     throw new Error("O valor guardado não pode superar o valor alvo.");
   const deadline = result.data.deadline

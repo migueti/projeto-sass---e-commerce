@@ -21,10 +21,15 @@ export const transactionSchema = z.object({
 });
 
 export function parseBrazilianCents(value: string) {
-  const normalized = value.replace(/R\$\s?/g, "").replace(/\./g, "").replace(",", ".").trim();
+  const raw = value.replace(/R\$\s?/g, "").trim();
+  if (!raw || !/^[0-9.,]+$/.test(raw)) return null;
+
+  const normalized = raw.replace(/\./g, "").replace(",", ".");
   const amount = Number(normalized);
   if (!Number.isFinite(amount) || amount <= 0) return null;
-  return Math.round(amount * 100);
+
+  const cents = Math.round(amount * 100);
+  return cents <= 2_147_483_647 ? cents : null;
 }
 
 export function parseLocalDate(value: string) {

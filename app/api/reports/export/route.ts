@@ -4,21 +4,10 @@ import { NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { parseDashboardFilters } from "@/lib/dashboard";
+import { getDashboardDateRange, parseDashboardFilters } from "@/lib/dashboard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function getRange(period: "month" | "30days" | "year") {
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-  const start = new Date(end);
-  if (period === "30days") start.setDate(start.getDate() - 29);
-  else if (period === "year") start.setMonth(0, 1);
-  else start.setDate(1);
-  start.setHours(0, 0, 0, 0);
-  return { gte: start, lte: end };
-}
 
 function money(cents: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -51,8 +40,9 @@ export async function GET(request: Request) {
     const user = await requireUser();
     const params = new URL(request.url).searchParams;
     const filters = parseDashboardFilters(params);
+    const { start, end } = getDashboardDateRange(filters.period);
     const rows = await prisma.transaction.findMany({
-      where: { userId: user.id, occurredAt: getRange(filters.period), ...(filters.accountId ? { accountId: filters.accountId } : {}), ...(filters.categoryId ? { categoryId: filters.categoryId } : {}) },
+      where: { userId: user.id, occurredAt: { gte: start, lte: end }, ...(filters.accountId ? { accountId: filters.accountId } : {}), ...(filters.categoryId ? { categoryId: filters.categoryId } : {}) },
       include: { account: { select: { name: true } }, category: { select: { name: true } } },
       orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
     });

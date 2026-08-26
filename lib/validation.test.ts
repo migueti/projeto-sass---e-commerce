@@ -16,8 +16,14 @@ describe("parseBrazilianCents", () => {
   it("rejects empty, non-numeric, zero, and negative amounts", () => {
     expect(parseBrazilianCents("")).toBeNull();
     expect(parseBrazilianCents("abc")).toBeNull();
+    expect(parseBrazilianCents("1e3")).toBeNull();
     expect(parseBrazilianCents("0")).toBeNull();
     expect(parseBrazilianCents("-12,50")).toBeNull();
+  });
+
+  it("rejects amounts outside the database integer range", () => {
+    expect(parseBrazilianCents("21.474.836,47")).toBe(2_147_483_647);
+    expect(parseBrazilianCents("21.474.836,48")).toBeNull();
   });
 });
 

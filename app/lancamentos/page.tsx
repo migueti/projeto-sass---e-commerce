@@ -4,6 +4,7 @@ import { type Prisma, TransactionType } from "@prisma/client";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parseLocalDate } from "@/lib/validation";
 
 export default async function TransactionsPage({ searchParams }: { searchParams: Promise<{ type?: string; accountId?: string; categoryId?: string; from?: string; to?: string }> }) {
   const user = await requireUser();
@@ -11,9 +12,15 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
   const type: TransactionType | undefined = filters.type === "INCOME" || filters.type === "EXPENSE" ? filters.type : undefined;
   const accountId = filters.accountId || undefined;
   const categoryId = filters.categoryId || undefined;
-  const from = filters.from && /^\d{4}-\d{2}-\d{2}$/.test(filters.from) ? filters.from : undefined;
-  const to = filters.to && /^\d{4}-\d{2}-\d{2}$/.test(filters.to) ? filters.to : undefined;
-  const dateFilter = from || to ? { occurredAt: { ...(from ? { gte: new Date(`${from}T00:00:00`) } : {}), ...(to ? { lt: new Date(`${to}T23:59:59.999`) } : {}) } } : {};
+  const from = filters.from && parseLocalDate(filters.from) ? filters.from : undefined;
+  const to = filters.to && parseLocalDate(filters.to) ? filters.to : undefined;
+  const fromDate = from ? parseLocalDate(from) : null;
+  const toExclusive = to ? parseLocalDate(to) : null;
+  if (toExclusive) {
+    toExclusive.setDate(toExclusive.getDate() + 1);
+    toExclusive.setHours(0, 0, 0, 0);
+  }
+  const dateFilter = fromDate || toExclusive ? { occurredAt: { ...(fromDate ? { gte: fromDate } : {}), ...(toExclusive ? { lt: toExclusive } : {}) } } : {};
   const transactionFilters: Prisma.TransactionWhereInput = {
     userId: user.id,
     ...(type ? { type } : {}),
