@@ -2,7 +2,7 @@ import { createHmac } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import { userIdFromExternalReference, webhookSignatureIsValid } from "@/lib/payment-webhook";
+import { priceFromExternalReference, userIdFromExternalReference, webhookSignatureIsValid } from "@/lib/payment-webhook";
 
 describe("payment webhook", () => {
   it("accepts a valid Mercado Pago x-signature", () => {
@@ -18,7 +18,8 @@ describe("payment webhook", () => {
   });
 
   it("extracts only the expected user reference format", () => {
-    expect(userIdFromExternalReference("nuvem:user:user-123:checkout-456")).toBe("user-123");
+    expect(userIdFromExternalReference("nuvem:user:user-123:price:2990:checkout-456")).toBe("user-123");
+    expect(priceFromExternalReference("nuvem:user:user-123:price:2990:checkout-456")).toBe(2990);
     expect(userIdFromExternalReference("nuvem:user:user-123")).toBe(null);
     expect(userIdFromExternalReference(undefined)).toBe(null);
   });

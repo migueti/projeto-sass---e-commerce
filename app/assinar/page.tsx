@@ -9,6 +9,7 @@ export default function SubscribePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [checkingPayment, setCheckingPayment] = useState(true);
+  const [price, setPrice] = useState("29,90");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -47,6 +48,15 @@ export default function SubscribePage() {
     };
   }, [router]);
 
+  useEffect(() => {
+    fetch("/api/payments/plan", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: { priceCents?: number } | null) => {
+        if (data?.priceCents) setPrice((data.priceCents / 100).toFixed(2).replace(".", ","));
+      })
+      .catch(() => undefined);
+  }, []);
+
   async function startCheckout() {
     setLoading(true);
     setError("");
@@ -69,7 +79,7 @@ export default function SubscribePage() {
         <p className="eyebrow">ACESSO AO NUVEM.</p>
         <h1>Seu espaço financeiro está pronto.</h1>
         <p className="auth-copy">Confirme o pagamento único para liberar dashboard, contas, lançamentos, metas e automações.</p>
-        <div className="panel-header"><strong>Plano completo</strong><strong>R$ 29,90</strong></div>
+        <div className="panel-header"><strong>Plano completo</strong><strong>R$ {price}</strong></div>
         {error && <p className="form-error">{error}</p>}
         {checkingPayment && <p className="form-success" role="status">Confirmando seu pagamento...</p>}
         <button className="primary-button auth-submit" type="button" onClick={startCheckout} disabled={loading}>

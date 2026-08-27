@@ -30,6 +30,7 @@ export async function registerUser(_state: { error?: string; success?: boolean }
       data: {
         name: parsed.data.name,
         email: parsed.data.email,
+        role: parsed.data.email === process.env.ADMIN_EMAIL?.trim().toLowerCase() ? "ADMIN" : "USER",
         passwordHash,
         categories: {
           create: [

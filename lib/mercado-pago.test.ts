@@ -7,7 +7,8 @@ describe("Mercado Pago checkout preference", () => {
     const body = buildCheckoutPreferenceBody(
       "cliente@example.com",
       "https://nuvem.example.com",
-      "nuvem:user:user-1:checkout-1",
+      "nuvem:user:user-1:price:2990:checkout-1",
+      2990,
     );
 
     expect(body.items[0]).toMatchObject({

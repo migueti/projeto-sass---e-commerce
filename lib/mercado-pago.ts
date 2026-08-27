@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
-
-const PLAN_PRICE_CENTS = 2990;
+import { getPlanPriceCents } from "@/lib/billing";
 
 function client() {
   const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
@@ -9,17 +8,11 @@ function client() {
   return new MercadoPagoConfig({ accessToken, options: { timeout: 5000 } });
 }
 
-export function planPriceCents() {
-  const configured = Number(process.env.NUVEM_PLAN_PRICE ?? "29.90");
-  return Number.isFinite(configured) && configured > 0
-    ? Math.round(configured * 100)
-    : PLAN_PRICE_CENTS;
-}
-
 export function buildCheckoutPreferenceBody(
   email: string,
   baseUrl: string,
   externalReference: string,
+  priceCents: number,
 ) {
   return {
     items: [{
@@ -28,7 +21,7 @@ export function buildCheckoutPreferenceBody(
       description: "Acesso digital ao sistema de controle financeiro pessoal nuvem.",
       quantity: 1,
       currency_id: "BRL",
-      unit_price: planPriceCents() / 100,
+      unit_price: priceCents / 100,
     }],
     payer: { email },
     external_reference: externalReference,
@@ -45,9 +38,10 @@ export function buildCheckoutPreferenceBody(
 export async function createCheckoutPreference(userId: string, email: string) {
   const baseUrl = process.env.NEXTAUTH_URL;
   if (!baseUrl) throw new Error("MERCADOPAGO_NOT_CONFIGURED");
-  const externalReference = `nuvem:user:${userId}:${randomUUID()}`;
+  const priceCents = await getPlanPriceCents();
+  const externalReference = `nuvem:user:${userId}:price:${priceCents}:${randomUUID()}`;
   const response = await new Preference(client()).create({
-    body: buildCheckoutPreferenceBody(email, baseUrl, externalReference),
+    body: buildCheckoutPreferenceBody(email, baseUrl, externalReference, priceCents),
   });
 
   const checkoutUrl = process.env.MERCADOPAGO_USE_SANDBOX === "true"

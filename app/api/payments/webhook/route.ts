@@ -2,9 +2,9 @@ import * as Sentry from "@sentry/nextjs";
 import { MPNotFoundError } from "mercadopago";
 import { NextResponse } from "next/server";
 
-import { getMercadoPagoPayment, planPriceCents } from "@/lib/mercado-pago";
+import { getMercadoPagoPayment } from "@/lib/mercado-pago";
 import { prisma } from "@/lib/prisma";
-import { userIdFromExternalReference, webhookSignatureIsValid } from "@/lib/payment-webhook";
+import { priceFromExternalReference, userIdFromExternalReference, webhookSignatureIsValid } from "@/lib/payment-webhook";
 
 export const runtime = "nodejs";
 
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     }
     const userId = userIdFromExternalReference(payment.external_reference);
     const amountCents = Math.round((payment.transaction_amount ?? 0) * 100);
-    if (!userId || amountCents !== planPriceCents()) return NextResponse.json({ received: true });
+    if (!userId || amountCents !== priceFromExternalReference(payment.external_reference)) return NextResponse.json({ received: true });
 
     await prisma.$transaction(async (transaction) => {
       await transaction.payment.upsert({

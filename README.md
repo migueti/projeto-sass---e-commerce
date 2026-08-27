@@ -95,7 +95,8 @@ kill <PID>
 | `MERCADOPAGO_ACCESS_TOKEN` | Token privado da API do Mercado Pago | valor do painel Mercado Pago |
 | `MERCADOPAGO_WEBHOOK_SECRET` | Segredo para validar a assinatura dos webhooks | segredo configurado no Mercado Pago |
 | `MERCADOPAGO_USE_SANDBOX` | Usa o `sandbox_init_point` no Checkout Pro | `true` em testes |
-| `NUVEM_PLAN_PRICE` | Preço do acesso em reais | `29.90` |
+| `NUVEM_PLAN_PRICE` | Fallback inicial legado; o preço oficial é alterado em `/admin` | `29.90` |
+| `ADMIN_EMAIL` | E-mail que recebe o papel administrativo no cadastro | `admin@example.com` |
 | `SERVER_ACTION_ALLOWED_ORIGINS` | Hostnames adicionais aceitos por Server Actions atrás de proxy, separados por vírgula | `app.example.com,preview.example.com` |
 | `SENTRY_DSN` | DSN do Sentry para servidor e Edge | valor fornecido pelo Sentry |
 | `NEXT_PUBLIC_SENTRY_DSN` | DSN público do Sentry para o navegador | valor fornecido pelo Sentry |
@@ -151,6 +152,12 @@ criado no servidor com o SDK oficial do Mercado Pago. O acesso só é liberado
 quando o webhook assinado consulta um pagamento aprovado, confere o valor e
 marca o usuário como pago no banco. Configure uma URL pública HTTPS para
 `/api/payments/webhook`; o retorno visual do Checkout Pro não confirma pagamento.
+
+O administrador acessa `/admin` e altera o preço do plano. O valor é salvo no
+banco em centavos e usado nas novas preferências de pagamento. Defina
+`ADMIN_EMAIL` antes do primeiro cadastro administrativo; uma conta existente
+com esse e-mail também é reconhecida como admin. Nunca crie credenciais admin
+fixas no código.
 
 ## Ambiente e deploy
 

@@ -24,6 +24,11 @@ enum GoalStatus {
   ARCHIVED
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
   id            String                @id @default(cuid())
   name          String?
@@ -31,6 +36,7 @@ model User {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
+  role          UserRole              @default(USER)
   hasPaid       Boolean               @default(false)
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
@@ -42,6 +48,12 @@ model User {
   recurrences   RecurringTransaction[]
   goals         FinancialGoal[]
   payments      Payment[]
+}
+
+model AppSettings {
+  id            String   @id @default("global")
+  planPriceCents Int      @default(2990)
+  updatedAt     DateTime @updatedAt
 }
 
 enum PaymentStatus {
