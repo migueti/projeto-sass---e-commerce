@@ -25,6 +25,8 @@ npm test             # run the full Vitest suite
 # Single-file test examples
 npx vitest run --configLoader runner lib/validation.test.ts
 npx vitest run --configLoader runner lib/dashboard.test.ts
+npx vitest run --configLoader runner lib/recurrence.test.ts
+npx vitest run --configLoader runner app/api/reports/export/route.test.ts
 
 # Database commands
 npm run db:migrate   # apply Prisma migrations
@@ -33,6 +35,8 @@ npm run db:generate  # regenerate Prisma client
 ```
 
 Vitest uses the `runner` config loader; use it for any additional targeted file, for example `npx vitest run --configLoader runner path/to/file.test.ts`.
+CI runs `npm ci`, Prisma generation/migrations, tests, typecheck, lint, and build
+with Node.js 20. Keep `package-lock.json` versioned.
 
 ## Architecture notes
 
@@ -47,6 +51,11 @@ Vitest uses the `runner` config loader; use it for any additional targeted file,
 - Business logic around dashboard filters and summaries is centralized in `lib/dashboard.ts` and `lib/dashboard-summary.ts`.
 - The dashboard page (`app/page.tsx`) is a client component that fetches `/api/dashboard` and `/api/me`; keep Prisma queries and aggregation on the server.
 - `proxy.ts` protects routes by default with NextAuth middleware, leaving only login, registration, NextAuth, and static assets public. Protected API handlers still call `requireUser()` themselves.
+- `requirePaidUser()` enforces the subscription gate and redirects unpaid page
+  requests to `/assinar`. Mercado Pago checkout/status/plan routes and the signed
+  `/api/payments/webhook` complete the payment flow.
+- `/admin` is restricted by the persisted `ADMIN` role or normalized
+  `ADMIN_EMAIL`; plan pricing is stored in `AppSettings` as integer cents.
 
 ## Key repository conventions
 
@@ -61,6 +70,16 @@ Vitest uses the `runner` config loader; use it for any additional targeted file,
 - Dynamic route handler contexts use promise-based params in this Next.js version (`params: Promise<{ id: string }>`); await `context.params`.
 - Recurrence processing must remain transactional and concurrency-safe: claim the current `nextOccurrence` before creating generated transactions, enforce the overdue-occurrence cap, and deactivate at `endAt`.
 - Dashboard and export endpoints should use `parseDashboardFilters` and `getDashboardDateRange` so period, account, and category filtering stays consistent.
+- Goal contributions are linked `Transaction` rows with `goalId`. Update the
+  goal balance and contribution row together in a transaction; ordinary
+  transaction editing/deletion must not bypass those rules.
+- Dashboard balance combines account opening balances, transactions before the
+  selected period, and the selected period's income minus expenses. When
+  diagnosing regressions, preserve the historical `occurredAt: { lt: start }`
+  constraint.
+- API handlers should return explicit status codes for authentication,
+  validation, payment-required, and row-limit errors. Unexpected failures use
+  the existing Sentry integration without exposing provider or credential data.
 - The app is primarily Portuguese-language in route names and UI copy, so keep feature naming and validation messages aligned with the existing patterns.
 
 ## Fork and deployment safeguards
@@ -73,6 +92,11 @@ Vitest uses the `runner` config loader; use it for any additional targeted file,
 - The total balance must include initial balance, historical transactions before the selected period, and the selected period's income minus expenses. Keep the historical query constrained with `occurredAt: { lt: start }`.
 - Logout must remain same-origin in hosted environments; avoid callback URLs that resolve to local `NEXTAUTH_URL` when the app is accessed through a public preview domain.
 - Keep `package-lock.json` versioned. The GitHub Actions workflow runs `npm ci`, tests, typecheck, lint, and build.
+- Mercado Pago credentials, webhook secrets, `.env`, SQLite files, password
+  hashes, sessions, and financial data must never be committed or shared.
+- The static `docs/` page can run on GitHub Pages, but authentication, SQLite,
+  payments, and webhooks require the Next.js backend. Set `APP_URL` in
+  `docs/script.js` to that backend's public URL before publishing.
 
 ## Relevant domain model summary
 
