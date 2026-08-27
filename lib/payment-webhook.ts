@@ -20,6 +20,11 @@ export function webhookSignatureIsValid(
 }
 
 export function userIdFromExternalReference(reference: string | undefined) {
-  const match = /^nuvem:user:([^:]+):[^:]+$/.exec(reference ?? "");
+  const match = /^nuvem:user:([^:]+):price:\d+:[^:]+$/.exec(reference ?? "");
   return match?.[1] ?? null;
+}
+
+export function priceFromExternalReference(reference: string | undefined) {
+  const match = /^nuvem:user:[^:]+:price:(\d+):[^:]+$/.exec(reference ?? "");
+  return match ? Number(match[1]) : null;
 }

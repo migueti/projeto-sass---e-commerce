@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
-
-const PLAN_PRICE_CENTS = 2990;
+import { getPlanPriceCents } from "@/lib/billing";
 
 function client() {
   const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
@@ -9,36 +8,40 @@ function client() {
   return new MercadoPagoConfig({ accessToken, options: { timeout: 5000 } });
 }
 
-export function planPriceCents() {
-  const configured = Number(process.env.NUVEM_PLAN_PRICE ?? "29.90");
-  return Number.isFinite(configured) && configured > 0
-    ? Math.round(configured * 100)
-    : PLAN_PRICE_CENTS;
+export function buildCheckoutPreferenceBody(
+  email: string,
+  baseUrl: string,
+  externalReference: string,
+  priceCents: number,
+) {
+  return {
+    items: [{
+      id: "nuvem-access",
+      title: "Acesso ao nuvem.",
+      description: "Acesso digital ao sistema de controle financeiro pessoal nuvem.",
+      quantity: 1,
+      currency_id: "BRL",
+      unit_price: priceCents / 100,
+    }],
+    payer: { email },
+    external_reference: externalReference,
+    notification_url: `${baseUrl}/api/payments/webhook`,
+    back_urls: {
+      success: `${baseUrl}/assinar?status=success`,
+      failure: `${baseUrl}/assinar?status=failure`,
+      pending: `${baseUrl}/assinar?status=pending`,
+    },
+    auto_return: "approved" as const,
+  };
 }
 
 export async function createCheckoutPreference(userId: string, email: string) {
   const baseUrl = process.env.NEXTAUTH_URL;
   if (!baseUrl) throw new Error("MERCADOPAGO_NOT_CONFIGURED");
-  const externalReference = `nuvem:user:${userId}:${randomUUID()}`;
+  const priceCents = await getPlanPriceCents();
+  const externalReference = `nuvem:user:${userId}:price:${priceCents}:${randomUUID()}`;
   const response = await new Preference(client()).create({
-    body: {
-      items: [{
-        id: "nuvem-access",
-        title: "Acesso ao nuvem.",
-        quantity: 1,
-        currency_id: "BRL",
-        unit_price: planPriceCents() / 100,
-      }],
-      payer: { email },
-      external_reference: externalReference,
-      notification_url: `${baseUrl}/api/payments/webhook`,
-      back_urls: {
-        success: `${baseUrl}/assinar?status=success`,
-        failure: `${baseUrl}/assinar?status=failure`,
-        pending: `${baseUrl}/assinar?status=pending`,
-      },
-      auto_return: "approved",
-    },
+    body: buildCheckoutPreferenceBody(email, baseUrl, externalReference, priceCents),
   });
 
   const checkoutUrl = process.env.MERCADOPAGO_USE_SANDBOX === "true"

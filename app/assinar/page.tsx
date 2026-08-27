@@ -2,12 +2,60 @@
 
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function SubscribePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [checkingPayment, setCheckingPayment] = useState(true);
+  const [price, setPrice] = useState("29,90");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    const checkPayment = async () => {
+      try {
+        const response = await fetch("/api/payments/status", {
+          signal: controller.signal,
+          cache: "no-store",
+        });
+        if (response.status === 401) {
+          router.replace("/login");
+          return;
+        }
+        if (!response.ok) throw new Error("status");
+        const data: { hasPaid?: boolean } = await response.json();
+        if (data.hasPaid) {
+          router.replace("/");
+          return;
+        }
+        if (active) setCheckingPayment(false);
+      } catch (statusError) {
+        if (active && !(statusError instanceof DOMException && statusError.name === "AbortError")) {
+          setCheckingPayment(false);
+        }
+      }
+    };
+
+    void checkPayment();
+    const timer = window.setInterval(() => void checkPayment(), 3000);
+    return () => {
+      active = false;
+      controller.abort();
+      window.clearInterval(timer);
+    };
+  }, [router]);
+
+  useEffect(() => {
+    fetch("/api/payments/plan", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: { priceCents?: number } | null) => {
+        if (data?.priceCents) setPrice((data.priceCents / 100).toFixed(2).replace(".", ","));
+      })
+      .catch(() => undefined);
+  }, []);
 
   async function startCheckout() {
     setLoading(true);
@@ -31,8 +79,9 @@ export default function SubscribePage() {
         <p className="eyebrow">ACESSO AO NUVEM.</p>
         <h1>Seu espaço financeiro está pronto.</h1>
         <p className="auth-copy">Confirme o pagamento único para liberar dashboard, contas, lançamentos, metas e automações.</p>
-        <div className="panel-header"><strong>Plano completo</strong><strong>R$ 29,90</strong></div>
+        <div className="panel-header"><strong>Plano completo</strong><strong>R$ {price}</strong></div>
         {error && <p className="form-error">{error}</p>}
+        {checkingPayment && <p className="form-success" role="status">Confirmando seu pagamento...</p>}
         <button className="primary-button auth-submit" type="button" onClick={startCheckout} disabled={loading}>
           {loading ? "Abrindo checkout..." : "Pagar com Mercado Pago"}
         </button>

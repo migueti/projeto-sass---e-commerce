@@ -20,3 +20,12 @@ export async function requirePaidUser() {
   if (!user.hasPaid) redirect("/assinar");
   return user;
 }
+
+export async function requireAdminUser() {
+  const user = await requireUser();
+  const configuredAdminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  if (user.role !== "ADMIN" && user.email !== configuredAdminEmail) {
+    throw new Error("FORBIDDEN");
+  }
+  return user;
+}
