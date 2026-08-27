@@ -21,8 +21,19 @@ export function getMercadoPagoBaseUrl() {
   return url.origin;
 }
 
+export function validateMercadoPagoEnvironment(
+  accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN,
+  useSandbox = process.env.MERCADOPAGO_USE_SANDBOX === "true",
+) {
+  if (!accessToken) throw new Error("MERCADOPAGO_NOT_CONFIGURED");
+  const expectedPrefix = useSandbox ? "TEST-" : "APP_USR-";
+  if (!accessToken.startsWith(expectedPrefix))
+    throw new Error("MERCADOPAGO_ENVIRONMENT_MISMATCH");
+}
+
 function client() {
   const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+  validateMercadoPagoEnvironment(accessToken);
   if (!accessToken) throw new Error("MERCADOPAGO_NOT_CONFIGURED");
   return new MercadoPagoConfig({ accessToken, options: { timeout: 5000 } });
 }

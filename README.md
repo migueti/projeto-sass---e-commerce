@@ -160,6 +160,11 @@ banco em centavos e usado nas novas preferências de pagamento. Defina
 com esse e-mail também é reconhecida como admin. Nunca crie credenciais admin
 fixas no código.
 
+No sandbox, use um token `TEST-` e contas de teste distintas para vendedor e
+comprador. Em produção, use um token `APP_USR-`; não tente pagar a própria conta
+vendedora. O botão e as validações do Checkout Pro são controlados pelo Mercado
+Pago, portanto um botão PIX desabilitado nessas condições não é corrigido por CSS.
+
 ## Ambiente e deploy
 
 Antes de publicar, configure as variáveis de ambiente na plataforma:
