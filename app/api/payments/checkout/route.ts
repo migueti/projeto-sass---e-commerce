@@ -18,6 +18,10 @@ export async function POST() {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     if (error instanceof Error && error.message === "MERCADOPAGO_NOT_CONFIGURED")
       return NextResponse.json({ error: "O pagamento ainda não está configurado." }, { status: 503 });
+    if (error instanceof Error && error.message === "MERCADOPAGO_INVALID_BASE_URL")
+      return NextResponse.json({ error: "A URL pública do pagamento não está configurada corretamente." }, { status: 503 });
+    if (error instanceof Error && error.message === "MERCADOPAGO_ENVIRONMENT_MISMATCH")
+      return NextResponse.json({ error: "As credenciais do Mercado Pago não correspondem ao ambiente configurado." }, { status: 503 });
     Sentry.captureException(error);
     return NextResponse.json({ error: "Não foi possível iniciar o pagamento." }, { status: 500 });
   }
