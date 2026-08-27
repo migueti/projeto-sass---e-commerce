@@ -5,6 +5,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseLocalDate } from "@/lib/validation";
+import { parsePage } from "@/lib/pagination";
 
 const pageSize = 30;
 
@@ -14,7 +15,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
   const type: TransactionType | undefined = filters.type === "INCOME" || filters.type === "EXPENSE" ? filters.type : undefined;
   const accountId = filters.accountId || undefined;
   const categoryId = filters.categoryId || undefined;
-  const page = Math.max(1, Number.parseInt(filters.page ?? "1", 10) || 1);
+  const page = parsePage(filters.page);
   const from = filters.from && parseLocalDate(filters.from) ? filters.from : undefined;
   const to = filters.to && parseLocalDate(filters.to) ? filters.to : undefined;
   const fromDate = from ? parseLocalDate(from) : null;
@@ -206,12 +207,12 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                   {transaction.type === "INCOME" ? "+" : "−"} R${" "}
                   {(transaction.cents / 100).toFixed(2).replace(".", ",")}
                 </b>
-                <Link
+                {!transaction.goalId && <Link
                   className="edit-button"
                   href={`/lancamentos/${transaction.id}`}
                 >
                   Editar
-                </Link>
+                </Link>}
                 <DeleteTransactionButton id={transaction.id} />
               </div>
             ))}

@@ -60,9 +60,14 @@ export async function deleteTransaction(id: string) {
   const user = await requireUser();
   if (!id.trim()) throw new Error("Lançamento inválido.");
 
-  const result = await prisma.transaction.deleteMany({
+  const transaction = await prisma.transaction.findFirst({
     where: { id, userId: user.id },
+    select: { goalId: true },
   });
+  if (!transaction) throw new Error("Lançamento não encontrado.");
+  if (transaction.goalId) throw new Error("Aportes de metas devem ser excluídos pela tela de metas.");
+
+  const result = await prisma.transaction.deleteMany({ where: { id, userId: user.id } });
   if (result.count !== 1) throw new Error("Lançamento não encontrado.");
 
   revalidatePath("/");
@@ -72,6 +77,13 @@ export async function deleteTransaction(id: string) {
 
 export async function updateTransaction(id: string, formData: FormData) {
   const user = await requireUser();
+  const current = await prisma.transaction.findFirst({
+    where: { id, userId: user.id },
+    select: { goalId: true },
+  });
+  if (!current) throw new Error("Lançamento não encontrado.");
+  if (current.goalId) throw new Error("Aportes de metas não podem ser editados.");
+
   const result = transactionSchema.safeParse(Object.fromEntries(formData));
   if (!result.success) throw new Error(result.error.issues[0]?.message ?? "Confira os dados.");
 

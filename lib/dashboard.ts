@@ -9,6 +9,23 @@ export type DashboardFilters = {
   categoryId?: string;
 };
 
+export const MAX_DASHBOARD_ROWS = 10_000;
+
+export function exceedsDashboardLimit(rowCount: number) {
+  return rowCount > MAX_DASHBOARD_ROWS;
+}
+
+type HistoricalTransactionGroup = {
+  type: "INCOME" | "EXPENSE";
+  _sum?: { cents?: number | null } | null;
+};
+
+export function normalizeHistoricalTransactions(
+  groups: HistoricalTransactionGroup[],
+) {
+  return groups.map(({ type, _sum }) => ({ type, cents: _sum?.cents ?? 0 }));
+}
+
 export function getDashboardDateRange(
   period: DashboardPeriod,
   referenceDate = new Date(),
@@ -46,8 +63,14 @@ export async function getDashboard(userId: string, filters: DashboardFilters) {
       where: scopedWhere,
       include: { account: { select: { id: true, name: true } }, category: { select: { id: true, name: true, color: true } } },
       orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
+      take: MAX_DASHBOARD_ROWS + 1,
     }),
-    prisma.transaction.findMany({ where: historicalWhere, select: { type: true, cents: true } }),
+    prisma.transaction.groupBy({
+      by: ["type"],
+      where: historicalWhere,
+      orderBy: { type: "asc" },
+      _sum: { cents: true },
+    }),
     prisma.financialGoal.findMany({ where: { userId, status: "ACTIVE" }, orderBy: [{ deadline: "asc" }, { createdAt: "desc" }] }),
     prisma.recurringTransaction.findFirst({
       where: { userId, active: true, ...(filters.accountId ? { accountId: filters.accountId } : {}), ...(filters.categoryId ? { categoryId: filters.categoryId } : {}) },
@@ -56,10 +79,13 @@ export async function getDashboard(userId: string, filters: DashboardFilters) {
     }),
   ]);
 
+  if (exceedsDashboardLimit(periodTransactions.length))
+    throw new Error("DASHBOARD_TOO_LARGE");
+
   const summary = summarizeDashboard({
-    accounts,
+    accounts: filters.categoryId ? [] : accounts,
     periodTransactions,
-    historicalTransactions,
+    historicalTransactions: normalizeHistoricalTransactions(historicalTransactions),
     goals,
     nextRecurrence,
   });

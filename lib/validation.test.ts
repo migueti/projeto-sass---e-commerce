@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   accountSchema,
+  passwordSchema,
   parseLocalDate,
   parseBrazilianCents,
   transactionSchema,
@@ -49,6 +50,13 @@ describe("parseBrazilianCents", () => {
 });
 
 describe("form schemas", () => {
+  it("limits passwords to bcrypt's 72-byte input", () => {
+    expect(passwordSchema.safeParse("a".repeat(72)).success).toBe(true);
+    expect(passwordSchema.safeParse(`${"a".repeat(72)}b`).success).toBe(false);
+    expect(passwordSchema.safeParse("á".repeat(36)).success).toBe(true);
+    expect(passwordSchema.safeParse("á".repeat(37)).success).toBe(false);
+  });
+
   it("normalizes valid account names and rejects incomplete transactions", () => {
     expect(
       accountSchema.parse({

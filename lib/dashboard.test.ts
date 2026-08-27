@@ -1,11 +1,34 @@
 import { describe, expect, it } from "vitest";
 
-import { getDashboardDateRange, parseDashboardFilters } from "@/lib/dashboard";
+import {
+  getDashboardDateRange,
+  exceedsDashboardLimit,
+  MAX_DASHBOARD_ROWS,
+  normalizeHistoricalTransactions,
+  parseDashboardFilters,
+} from "@/lib/dashboard";
 import { summarizeDashboard } from "@/lib/dashboard-summary";
 
 const date = (value: string) => new Date(`${value}T12:00:00.000Z`);
 
 describe("dashboard filters and periods", () => {
+  it("detects dashboard periods that exceed the row limit", () => {
+    expect(exceedsDashboardLimit(MAX_DASHBOARD_ROWS)).toBe(false);
+    expect(exceedsDashboardLimit(MAX_DASHBOARD_ROWS + 1)).toBe(true);
+  });
+
+  it("normalizes database totals grouped by transaction type", () => {
+    expect(
+      normalizeHistoricalTransactions([
+        { type: "INCOME", _sum: { cents: 25_000 } },
+        { type: "EXPENSE", _sum: { cents: null } },
+      ]),
+    ).toEqual([
+      { type: "INCOME", cents: 25_000 },
+      { type: "EXPENSE", cents: 0 },
+    ]);
+  });
+
   it("uses the month by default and preserves optional filters", () => {
     expect(parseDashboardFilters(new URLSearchParams())).toEqual({
       period: "month",
@@ -115,5 +138,17 @@ describe("summarizeDashboard", () => {
 
     expect(summary.categories).toEqual([]);
     expect(summary.expenseCents).toBe(0);
+  });
+
+  it("does not attribute account opening balances to a category", () => {
+    const summary = summarizeDashboard({
+      accounts: [],
+      historicalTransactions: [{ type: "EXPENSE", cents: 1_000 }],
+      periodTransactions: [],
+      goals: [],
+      nextRecurrence: null,
+    });
+
+    expect(summary.balanceCents).toBe(-1_000);
   });
 });

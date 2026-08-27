@@ -13,7 +13,17 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" data-theme="light">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              const stored = localStorage.getItem("nuvem-theme");
+              if (stored === "dark" || stored === "light") document.documentElement.dataset.theme = stored;
+            `,
+          }}
+        />
+      </head>
       <body>
         <main className="error-page" role="alert">
           <div className="error-content">

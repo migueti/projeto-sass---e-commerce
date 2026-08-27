@@ -1,6 +1,8 @@
 import { createRecurrence, deleteRecurrence, processRecurrence, toggleRecurrence } from "@/app/actions/recurrences";
 import { requireUser } from "@/lib/auth";
+import { parsePage } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
 
 const money = (cents: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
@@ -12,9 +14,12 @@ const frequencyLabel = {
   YEARLY: "Anual",
 };
 
-export default async function RecurrencesPage() {
+const pageSize = 30;
+
+export default async function RecurrencesPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const user = await requireUser();
-  const [accounts, categories, recurrences] = await Promise.all([
+  const page = parsePage((await searchParams).page);
+  const [accounts, categories, recurrences, recurrenceCount] = await Promise.all([
     prisma.financialAccount.findMany({
       where: { userId: user.id },
       orderBy: { name: "asc" },
@@ -30,8 +35,12 @@ export default async function RecurrencesPage() {
         category: { select: { name: true } },
       },
       orderBy: { nextOccurrence: "asc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     }),
+    prisma.recurringTransaction.count({ where: { userId: user.id } }),
   ]);
+  const totalPages = Math.max(1, Math.ceil(recurrenceCount / pageSize));
 
   return (
     <main className="content-wrap">
@@ -128,7 +137,7 @@ export default async function RecurrencesPage() {
           <div className="panel-header">
             <div>
               <h3>Suas recorrências</h3>
-              <p>{recurrences.length} cobrança(s) programada(s)</p>
+              <p>{recurrenceCount} cobrança(s) programada(s)</p>
             </div>
           </div>
           <div className="records">
@@ -176,6 +185,13 @@ export default async function RecurrencesPage() {
               <p className="heading-copy">Nenhuma recorrência cadastrada.</p>
             )}
           </div>
+          {recurrenceCount > pageSize && (
+            <div className="pagination">
+              {page > 1 ? <Link className="text-button" href={`/recorrencias?page=${page - 1}`}>Anterior</Link> : <span />}
+              <span>Página {page} de {totalPages}</span>
+              {page < totalPages ? <Link className="text-button" href={`/recorrencias?page=${page + 1}`}>Próxima</Link> : <span />}
+            </div>
+          )}
         </section>
       </div>
     </main>
