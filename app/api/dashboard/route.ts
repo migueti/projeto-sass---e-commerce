@@ -15,6 +15,7 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     if (error instanceof Error && error.message === "INVALID_PERIOD") return NextResponse.json({ error: "Período inválido." }, { status: 400 });
+    if (error instanceof Error && error.message === "DASHBOARD_TOO_LARGE") return NextResponse.json({ error: "Reduza o período ou aplique filtros para carregar o dashboard." }, { status: 413 });
     Sentry.captureException(error);
     return NextResponse.json({ error: "Não foi possível carregar o dashboard." }, { status: 500 });
   }

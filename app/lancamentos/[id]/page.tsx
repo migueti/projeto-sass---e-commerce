@@ -13,6 +13,7 @@ export default async function EditTransactionPage({ params }: { params: Promise<
     prisma.category.findMany({ where: { userId: user.id }, orderBy: { name: "asc" } }),
   ]);
   if (!transaction) return <main className="content-wrap"><section className="panel"><h1>Lançamento não encontrado</h1><Link className="text-button" href="/lancamentos">Voltar para lançamentos →</Link></section></main>;
+  if (transaction.goalId) return <main className="content-wrap"><section className="panel"><h1>Aporte de meta</h1><p className="heading-copy">Aportes de metas não podem ser editados.</p><Link className="text-button" href="/metas">Voltar para metas →</Link></section></main>;
 
   const update = updateTransaction.bind(null, transaction.id);
   const date = transaction.occurredAt.toISOString().slice(0, 10);

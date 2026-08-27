@@ -9,6 +9,11 @@ import { getDashboardDateRange, parseDashboardFilters } from "@/lib/dashboard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const MAX_EXPORT_ROWS = 10_000;
+
+export function exceedsExportLimit(rowCount: number) {
+  return rowCount > MAX_EXPORT_ROWS;
+}
 
 function money(cents: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -54,7 +59,14 @@ export async function GET(request: Request) {
       where: { userId: user.id, occurredAt: { gte: start, lte: end }, ...(filters.accountId ? { accountId: filters.accountId } : {}), ...(filters.categoryId ? { categoryId: filters.categoryId } : {}) },
       include: { account: { select: { name: true } }, category: { select: { name: true } } },
       orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
+      take: MAX_EXPORT_ROWS + 1,
     });
+    if (exceedsExportLimit(rows.length)) {
+      return NextResponse.json(
+        { error: "Reduza o período ou aplique filtros para exportar os lançamentos." },
+        { status: 413 },
+      );
+    }
     const title = `Lançamentos · ${filters.period === "year" ? "Este ano" : filters.period === "30days" ? "Últimos 30 dias" : "Este mês"}`;
 
     if (format === "pdf") {

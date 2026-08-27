@@ -1,5 +1,6 @@
 import { createAccount } from "@/app/actions/transactions";
 import { requireUser } from "@/lib/auth";
+import { summarizeAccountTransactions } from "@/lib/accounts";
 import { prisma } from "@/lib/prisma";
 
 const money = (cents: number) =>
@@ -16,9 +17,17 @@ export default async function AccountsPage() {
   const user = await requireUser();
   const accounts = await prisma.financialAccount.findMany({
     where: { userId: user.id },
-    include: { transactions: { select: { cents: true, type: true } } },
+    select: { id: true, name: true, type: true, initialCents: true },
     orderBy: { name: "asc" },
   });
+  const transactionTotals = await prisma.transaction.groupBy({
+    by: ["accountId", "type"],
+    where: { userId: user.id },
+    _sum: { cents: true },
+    _count: { _all: true },
+    orderBy: { accountId: "asc" },
+  });
+  const accountSummaries = summarizeAccountTransactions(accounts, transactionTotals);
 
   return (
     <main className="content-wrap">
@@ -64,27 +73,18 @@ export default async function AccountsPage() {
           <div className="records">
             {accounts.length ? (
               accounts.map((account) => {
-                const balance =
-                  account.initialCents +
-                  account.transactions.reduce(
-                    (sum, transaction) =>
-                      sum +
-                      (transaction.type === "INCOME"
-                        ? transaction.cents
-                        : -transaction.cents),
-                    0,
-                  );
+                const summary = accountSummaries.get(account.id);
                 return (
                   <div className="record" key={account.id}>
                     <div>
                       <strong>{account.name}</strong>
                       <small>
                         {labels[account.type] ?? account.type} ·{" "}
-                        {account.transactions.length} lançamento(s)
+                        {summary?.transactionCount ?? 0} lançamento(s)
                       </small>
                     </div>
-                    <b className={balance >= 0 ? "positive" : "negative"}>
-                      {money(balance)}
+                    <b className={(summary?.balanceCents ?? 0) >= 0 ? "positive" : "negative"}>
+                      {money(summary?.balanceCents ?? account.initialCents)}
                     </b>
                   </div>
                 );

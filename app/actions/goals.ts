@@ -7,6 +7,8 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseBrazilianCents, parseLocalDate } from "@/lib/validation";
 
+const MAX_ACTIVE_GOALS = 100;
+
 const goalSchema = z.object({
   name: z
     .string()
@@ -51,23 +53,55 @@ export async function createGoal(formData: FormData) {
     accountId = account.id;
   }
 
-  await prisma.financialGoal.create({
-    data: {
-      userId: user.id,
-      accountId,
-      name: result.data.name,
-      targetCents,
-      savedCents,
-      deadline,
-      status: savedCents === targetCents ? "COMPLETED" : "ACTIVE",
-    },
+  await prisma.$transaction(async (transaction) => {
+    const activeGoalCount = await transaction.financialGoal.count({
+      where: { userId: user.id, status: "ACTIVE" },
+    });
+    if (activeGoalCount >= MAX_ACTIVE_GOALS)
+      throw new Error("Você atingiu o limite de metas ativas.");
+
+    const goal = await transaction.financialGoal.create({
+      data: {
+        userId: user.id,
+        accountId,
+        name: result.data.name,
+        targetCents,
+        savedCents,
+        deadline,
+        status: savedCents === targetCents ? "COMPLETED" : "ACTIVE",
+      },
+    });
+
+    if (accountId && savedCents > 0) {
+      await transaction.transaction.create({
+        data: {
+          userId: user.id,
+          accountId,
+          goalId: goal.id,
+          type: "EXPENSE",
+          description: `Aporte inicial para meta: ${goal.name}`,
+          cents: savedCents,
+          occurredAt: new Date(),
+        },
+      });
+    }
   });
   revalidatePath("/metas");
   revalidatePath("/");
+  revalidatePath("/contas");
+  revalidatePath("/lancamentos");
 }
 
 export async function deleteGoal(id: string) {
   const user = await requireUser();
+  const goal = await prisma.financialGoal.findFirst({
+    where: { id, userId: user.id },
+    select: { _count: { select: { contributions: true } } },
+  });
+  if (!goal) throw new Error("Meta não encontrada.");
+  if (goal._count.contributions > 0)
+    throw new Error("Exclua os aportes da meta antes de excluir a meta.");
+
   const result = await prisma.financialGoal.deleteMany({ where: { id, userId: user.id } });
   if (result.count !== 1) throw new Error("Meta não encontrada.");
   revalidatePath("/metas");
@@ -85,7 +119,7 @@ export async function addGoalContribution(id: string, formData: FormData) {
 
   await prisma.$transaction(async (transaction) => {
     const goal = await transaction.financialGoal.findFirst({
-      where: { id, userId: user.id },
+      where: { id, userId: user.id, status: "ACTIVE" },
       select: { savedCents: true, targetCents: true, accountId: true, name: true },
     });
     if (!goal) throw new Error("Meta não encontrada.");
@@ -94,7 +128,12 @@ export async function addGoalContribution(id: string, formData: FormData) {
       throw new Error("O aporte não pode superar o valor alvo.");
 
     const updated = await transaction.financialGoal.updateMany({
-      where: { id, userId: user.id, savedCents: goal.savedCents },
+      where: {
+        id,
+        userId: user.id,
+        status: "ACTIVE",
+        savedCents: goal.savedCents,
+      },
       data: {
         savedCents,
         status: savedCents === goal.targetCents ? "COMPLETED" : "ACTIVE",
@@ -112,6 +151,7 @@ export async function addGoalContribution(id: string, formData: FormData) {
           description: `Aporte para meta: ${goal.name}`,
           cents,
           occurredAt: new Date(),
+          goalId: id,
         },
       });
     }

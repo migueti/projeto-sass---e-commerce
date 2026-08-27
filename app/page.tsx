@@ -262,7 +262,7 @@ export default function Home() {
                   .toUpperCase()}
               </p>
               <h1>
-                Bom dia, {userName.split(" ")[0]} <span>✦</span>
+                <span className="rainbow-title">Bom dia, {userName.split(" ")[0]}</span> <span>✦</span>
               </h1>
               <p className="heading-copy">
                 Aqui está o resumo da sua vida financeira.
