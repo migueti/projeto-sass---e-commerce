@@ -10,6 +10,8 @@ describe("protected route matcher", () => {
     expect(isPublicRoute.test("login/reset")).toBe(true);
     expect(isPublicRoute.test("cadastro")).toBe(true);
     expect(isPublicRoute.test("api/auth/session")).toBe(true);
+    expect(isPublicRoute.test("api/payments/webhook")).toBe(true);
+    expect(isPublicRoute.test("api/payments/webhook/extra")).toBe(true);
     expect(isPublicRoute.test("login-admin")).toBe(false);
     expect(isPublicRoute.test("api/authz")).toBe(false);
   });
