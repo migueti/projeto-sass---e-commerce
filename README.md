@@ -54,6 +54,20 @@ Aplicativo de controle financeiro pessoal em português. Permite acompanhar cont
 
 Abra [http://localhost:3000](http://localhost:3000).
 
+## Página estática no GitHub Pages
+
+O diretório `docs/` contém uma página HTML/CSS/JavaScript independente para
+publicação gratuita no GitHub Pages. Antes de publicar, altere `APP_URL` em
+`docs/script.js` para a URL pública onde o backend Next.js estiver hospedado.
+
+No GitHub, abra **Settings > Pages**, escolha **Deploy from a branch**, selecione
+a branch `main` e a pasta `/docs`. O endereço gratuito será semelhante a
+`https://seu-usuario.github.io/nome-do-repositorio/`.
+
+Essa página é apenas a apresentação estática. O login, banco de dados, checkout
+Mercado Pago e webhook continuam precisando do servidor Next.js; GitHub Pages
+não executa essas funções de backend.
+
 Se a porta `3000` já estiver em uso, inicie o Next.js em outra porta:
 
 ```bash
@@ -78,6 +92,10 @@ kill <PID>
 | `DATABASE_URL` | Caminho da base SQLite | `file:./dev.db` |
 | `NEXTAUTH_SECRET` | Segredo usado para assinar a sessão | valor aleatório longo |
 | `NEXTAUTH_URL` | URL pública da aplicação | `http://localhost:3000` |
+| `MERCADOPAGO_ACCESS_TOKEN` | Token privado da API do Mercado Pago | valor do painel Mercado Pago |
+| `MERCADOPAGO_WEBHOOK_SECRET` | Segredo para validar a assinatura dos webhooks | segredo configurado no Mercado Pago |
+| `MERCADOPAGO_USE_SANDBOX` | Usa o `sandbox_init_point` no Checkout Pro | `true` em testes |
+| `NUVEM_PLAN_PRICE` | Preço do acesso em reais | `29.90` |
 | `SERVER_ACTION_ALLOWED_ORIGINS` | Hostnames adicionais aceitos por Server Actions atrás de proxy, separados por vírgula | `app.example.com,preview.example.com` |
 | `SENTRY_DSN` | DSN do Sentry para servidor e Edge | valor fornecido pelo Sentry |
 | `NEXT_PUBLIC_SENTRY_DSN` | DSN público do Sentry para o navegador | valor fornecido pelo Sentry |
@@ -125,6 +143,14 @@ npx vitest run --configLoader runner lib/validation.test.ts
 - `components/`: componentes compartilhados
 
 Valores monetários são armazenados como inteiros em centavos. Datas de formulários usam o parser compartilhado para evitar deslocamentos de fuso horário.
+
+## Pagamento para liberar o acesso
+
+Após o cadastro e login, o usuário é direcionado para `/assinar`. O checkout é
+criado no servidor com o SDK oficial do Mercado Pago. O acesso só é liberado
+quando o webhook assinado consulta um pagamento aprovado, confere o valor e
+marca o usuário como pago no banco. Configure uma URL pública HTTPS para
+`/api/payments/webhook`; o retorno visual do Checkout Pro não confirma pagamento.
 
 ## Ambiente e deploy
 

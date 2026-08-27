@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { requireUser } from "@/lib/auth";
+import { requirePaidUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseBrazilianCents, parseLocalDate } from "@/lib/validation";
 
@@ -26,7 +26,7 @@ const contributionSchema = z.object({
 });
 
 export async function createGoal(formData: FormData) {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   const result = goalSchema.safeParse(Object.fromEntries(formData));
   if (!result.success)
     throw new Error(result.error.issues[0]?.message ?? "Confira os dados.");
@@ -93,7 +93,7 @@ export async function createGoal(formData: FormData) {
 }
 
 export async function deleteGoal(id: string) {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   const goal = await prisma.financialGoal.findFirst({
     where: { id, userId: user.id },
     select: { _count: { select: { contributions: true } } },
@@ -109,7 +109,7 @@ export async function deleteGoal(id: string) {
 }
 
 export async function addGoalContribution(id: string, formData: FormData) {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   const result = contributionSchema.safeParse(Object.fromEntries(formData));
   if (!result.success)
     throw new Error(result.error.issues[0]?.message ?? "Confira o valor do aporte.");

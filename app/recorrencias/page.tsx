@@ -1,5 +1,5 @@
 import { createRecurrence, deleteRecurrence, processRecurrence, toggleRecurrence } from "@/app/actions/recurrences";
-import { requireUser } from "@/lib/auth";
+import { requirePaidUser } from "@/lib/auth";
 import { parsePage } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
@@ -17,7 +17,7 @@ const frequencyLabel = {
 const pageSize = 30;
 
 export default async function RecurrencesPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   const page = parsePage((await searchParams).page);
   const [accounts, categories, recurrences, recurrenceCount] = await Promise.all([
     prisma.financialAccount.findMany({

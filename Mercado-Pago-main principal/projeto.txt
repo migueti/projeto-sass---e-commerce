@@ -1,0 +1,1319 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  copilot-instructions.md
+src/
+  catalog.ts
+  database.ts
+  docs-client.ts
+  index.ts
+  mercadopago-client.ts
+  pix-server.ts
+  pix-status.ts
+test/
+  docs-client.test.ts
+  mercadopago-client.test.ts
+  tsconfig.json
+  webhook-signature.test.ts
+.gitignore
+index.html
+LICENSE
+package.json
+plan.md
+README.md
+script.js
+styles.css
+tsconfig.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/copilot-instructions.md">
+# Instrucoes do MCP Mercado Pago
+
+- Use o SDK oficial `@modelcontextprotocol/sdk` e transporte `stdio`.
+- Para documentacao, use somente fontes oficiais do Mercado Pago Brasil e informe a URL especifica consultada.
+- Nao invente endpoints, campos, respostas ou disponibilidade por pais. Quando a documentacao nao estiver disponivel, informe a limitacao.
+- Nunca exponha `MERCADOPAGO_ACCESS_TOKEN`; use credenciais de teste durante o desenvolvimento.
+- Mantenha `MERCADOPAGO_READ_ONLY=true` por padrao. Operacoes mutaveis exigem confirmacao explicita, idempotencia e validacao da documentacao oficial.
+- Referencias: https://github.com/modelcontextprotocol/typescript-sdk e https://modelcontextprotocol.io/
+</file>
+
+<file path="src/catalog.ts">
+export type DocumentationEntry = {
+  title: string;
+  description: string;
+  product: string;
+  path: string;
+  keywords: string[];
+};
+
+export const DOCUMENTATION_BASE = "https://www.mercadopago.com.br/developers/pt/docs";
+
+export const documentationCatalog: DocumentationEntry[] = [
+  {
+    title: "Mercado Pago MCP Server",
+    description: "Conheca o MCP Server do Mercado Pago.",
+    product: "MCP Server",
+    path: "/mcp-server/overview",
+    keywords: ["mcp", "servidor", "ia", "ide"]
+  },
+  {
+    title: "Checkout API via Orders",
+    description: "Controle total do Checkout Transparente usando a API de Orders.",
+    product: "Checkout API Orders",
+    path: "/checkout-api-orders/overview",
+    keywords: ["checkout", "transparente", "orders", "pedido"]
+  },
+  {
+    title: "Integrar Pix com Orders",
+    description: "Ofereca pagamentos Pix no Checkout Transparente com Orders API.",
+    product: "Checkout API Orders",
+    path: "/checkout-api-orders/payment-integration/pix",
+    keywords: ["pix", "orders", "checkout", "pagamento"]
+  },
+  {
+    title: "Integrar cartoes com Orders",
+    description: "Configure pagamentos com cartao usando Orders API.",
+    product: "Checkout API Orders",
+    path: "/checkout-api-orders/payment-integration/cards",
+    keywords: ["cartao", "cartoes", "orders", "checkout"]
+  },
+  {
+    title: "Checkout API via Payments",
+    description: "Checkout Transparente usando a Payments API.",
+    product: "Checkout API Payments",
+    path: "/checkout-api-payments/overview",
+    keywords: ["checkout", "payments", "pagamentos", "v1/payments"]
+  },
+  {
+    title: "Checkout Pro",
+    description: "Processamento de pagamentos no ambiente do Mercado Pago.",
+    product: "Checkout Pro",
+    path: "/checkout-pro/overview",
+    keywords: ["checkout pro", "preferencia", "redirect", "pagamento"]
+  },
+  {
+    title: "Criar preferencia de pagamento",
+    description: "Crie a preferencia que permite cobrar com Checkout Pro.",
+    product: "Checkout Pro",
+    path: "/checkout-pro/create-payment-preference",
+    keywords: ["preferencia", "checkout pro", "preference"]
+  },
+  {
+    title: "Webhooks",
+    description: "Configure notificacoes Webhooks para sua aplicacao.",
+    product: "Your integrations",
+    path: "/your-integrations/notifications/webhooks",
+    keywords: ["webhook", "notificacao", "assinatura", "x-signature"]
+  },
+  {
+    title: "Credenciais",
+    description: "Saiba como obter e proteger as credenciais da integracao.",
+    product: "Your integrations",
+    path: "/your-integrations/credentials",
+    keywords: ["credencial", "access token", "public key", "token"]
+  },
+  {
+    title: "Seguranca OAuth",
+    description: "Protocolo OAuth para acesso limitado a contas Mercado Pago.",
+    product: "Security",
+    path: "/security/oauth",
+    keywords: ["oauth", "access token", "refresh token", "seguranca"]
+  }
+];
+</file>
+
+<file path="src/database.ts">
+import Database from "better-sqlite3";
+import { mkdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+
+const databasePath = resolve(process.env.DATABASE_PATH ?? "./data/mercado-pago.sqlite");
+mkdirSync(dirname(databasePath), { recursive: true });
+
+export const database = new Database(databasePath);
+database.pragma("journal_mode = WAL");
+database.exec(`
+  CREATE TABLE IF NOT EXISTS orders (
+    order_id TEXT PRIMARY KEY,
+    payload TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS public_payments (
+    public_payment_id TEXT PRIMARY KEY,
+    order_id TEXT NOT NULL,
+    payment_id TEXT,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id)
+  );
+  CREATE TABLE IF NOT EXISTS idempotency_keys (
+    idempotency_key TEXT PRIMARY KEY,
+    request_hash TEXT NOT NULL,
+    response TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS webhook_events (
+    event_key TEXT PRIMARY KEY,
+    data_id TEXT NOT NULL,
+    received_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+
+type StoredPayment = { publicPaymentId: string; orderId: string; paymentId?: string; status: string };
+
+export function saveOrder(orderId: string, payload: Record<string, unknown>): void {
+  database.prepare("INSERT OR REPLACE INTO orders (order_id, payload) VALUES (?, ?)").run(orderId, JSON.stringify(payload));
+}
+
+export function getOrder(orderId: string): Record<string, any> | undefined {
+  const row = database.prepare("SELECT payload FROM orders WHERE order_id = ?").get(orderId) as { payload: string } | undefined;
+  return row ? JSON.parse(row.payload) : undefined;
+}
+
+export function savePayment(payment: StoredPayment): void {
+  database.prepare("INSERT OR REPLACE INTO public_payments (public_payment_id, order_id, payment_id, status) VALUES (?, ?, ?, ?)").run(payment.publicPaymentId, payment.orderId, payment.paymentId ?? null, payment.status);
+}
+
+export function getPayment(publicPaymentId: string): StoredPayment | undefined {
+  return database.prepare("SELECT public_payment_id as publicPaymentId, order_id as orderId, payment_id as paymentId, status FROM public_payments WHERE public_payment_id = ?").get(publicPaymentId) as StoredPayment | undefined;
+}
+
+export function updatePaymentStatus(publicPaymentId: string, status: string): void {
+  database.prepare("UPDATE public_payments SET status = ? WHERE public_payment_id = ?").run(status, publicPaymentId);
+}
+
+export function findPaymentByExternalId(dataId: string): StoredPayment | undefined {
+  return database.prepare("SELECT public_payment_id as publicPaymentId, order_id as orderId, payment_id as paymentId, status FROM public_payments WHERE order_id = ? OR payment_id = ? LIMIT 1").get(dataId, dataId) as StoredPayment | undefined;
+}
+
+export function saveWebhookEvent(eventKey: string, dataId: string): boolean {
+  const result = database.prepare("INSERT OR IGNORE INTO webhook_events (event_key, data_id) VALUES (?, ?)").run(eventKey, dataId);
+  return result.changes === 1;
+}
+
+export function getIdempotentResponse(key: string, requestHash: string): { response?: string; conflict: boolean } {
+  const row = database.prepare("SELECT request_hash as requestHash, response FROM idempotency_keys WHERE idempotency_key = ?").get(key) as { requestHash: string; response: string } | undefined;
+  if (!row) return { conflict: false };
+  return row.requestHash === requestHash ? { response: row.response, conflict: false } : { conflict: true };
+}
+
+export function saveIdempotentResponse(key: string, requestHash: string, response: string): void {
+  database.prepare("INSERT INTO idempotency_keys (idempotency_key, request_hash, response) VALUES (?, ?, ?)").run(key, requestHash, response);
+}
+</file>
+
+<file path="src/docs-client.ts">
+import { DOCUMENTATION_BASE, documentationCatalog, type DocumentationEntry } from "./catalog.js";
+
+const ALLOWED_HOSTS = new Set(["www.mercadopago.com.br", "mercadopago.com.br"]);
+const REQUEST_TIMEOUT_MS = 10_000;
+const MAX_RESPONSE_BYTES = 2_000_000;
+
+export function searchDocumentation(query: string, limit = 8): DocumentationEntry[] {
+  const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
+  if (!normalizedQuery) return [];
+
+  return documentationCatalog
+    .map((entry) => {
+      const haystack = [entry.title, entry.description, entry.product, ...entry.keywords]
+        .join(" ")
+        .toLocaleLowerCase("pt-BR");
+      const score = haystack.includes(normalizedQuery)
+        ? 3
+        : normalizedQuery.split(/\s+/).filter((term) => haystack.includes(term)).length;
+      return { entry, score };
+    })
+    .filter(({ score }) => score > 0)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, Math.max(1, Math.min(limit, 20)))
+    .map(({ entry }) => entry);
+}
+
+function assertOfficialUrl(input: string): URL {
+  const url = new URL(input);
+  if (url.protocol !== "https:" || !ALLOWED_HOSTS.has(url.hostname)) {
+    throw new Error("A URL deve usar HTTPS e pertencer ao dominio oficial do Mercado Pago Brasil.");
+  }
+  if (!url.pathname.startsWith("/developers/pt/docs/")) {
+    throw new Error("Somente paginas da documentacao oficial em portugues podem ser consultadas.");
+  }
+  return url;
+}
+
+async function readResponse(response: Response): Promise<string> {
+  const contentLength = Number(response.headers.get("content-length") ?? 0);
+  if (contentLength > MAX_RESPONSE_BYTES) throw new Error("A resposta da documentacao excede o limite permitido.");
+  const text = await response.text();
+  if (Buffer.byteLength(text, "utf8") > MAX_RESPONSE_BYTES) throw new Error("A resposta da documentacao excede o limite permitido.");
+  return text;
+}
+
+export async function fetchDocumentation(entry: DocumentationEntry): Promise<{ url: string; content: string }> {
+  const url = assertOfficialUrl(`${DOCUMENTATION_BASE}${entry.path}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { signal: controller.signal, headers: { accept: "text/html,text/plain" } });
+    if (!response.ok) throw new Error(`A documentacao retornou HTTP ${response.status}.`);
+    return { url: url.toString(), content: await readResponse(response) };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+</file>
+
+<file path="src/pix-status.ts">
+export type PixStatus = "pending" | "approved" | "rejected";
+
+export function paymentStatus(order: Record<string, any>): PixStatus {
+  const payment = order.transactions?.payments?.[0];
+  const status = payment?.status ?? order.status;
+  const statusDetail = payment?.status_detail ?? order.status_detail;
+  if (status === "approved" || (status === "processed" && statusDetail === "accredited")) return "approved";
+  if (["rejected", "cancelled", "refunded", "charged_back"].includes(status)) return "rejected";
+  return "pending";
+}
+
+export function publicPaymentStatus(status: PixStatus): { status: PixStatus; message: string } {
+  const messages = { pending: "Aguardando pagamento", approved: "Pagamento recebido e aprovado", rejected: "Pagamento recusado ou cancelado" };
+  return { status, message: messages[status] };
+}
+</file>
+
+<file path="test/docs-client.test.ts">
+import test from "node:test";
+import assert from "node:assert/strict";
+import { searchDocumentation } from "../src/docs-client.js";
+
+test("encontra documentacao de Pix no catalogo brasileiro", () => {
+  const results = searchDocumentation("Pix");
+  assert.ok(results.length > 0);
+  assert.ok(results.some((entry) => entry.path.includes("pix")));
+});
+
+test("nao retorna resultados para busca vazia", () => {
+  assert.deepEqual(searchDocumentation("   "), []);
+});
+</file>
+
+<file path="test/tsconfig.json">
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["./**/*.ts"]
+}
+</file>
+
+<file path="test/webhook-signature.test.ts">
+import test from "node:test";
+import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
+import { webhookSignatureIsValid } from "../src/pix-server.js";
+
+const secret = "webhook-secret";
+const dataId = "ORD_TESTE_123";
+const requestId = "request-test-123";
+const timestamp = "1720000000";
+const manifest = `id:${dataId};request-id:${requestId};ts:${timestamp};`;
+const hash = createHmac("sha256", secret).update(manifest).digest("hex");
+
+test("aceita uma assinatura Mercado Pago valida", () => {
+  assert.equal(webhookSignatureIsValid({ signature: `ts=${timestamp},v1=${hash}`, requestId }, dataId, secret), true);
+});
+
+test("rejeita assinatura com hash malformado", () => {
+  assert.equal(webhookSignatureIsValid({ signature: `ts=${timestamp},v1=nao-hex`, requestId }, dataId, secret), false);
+});
+
+test("rejeita assinatura duplicada ou sem request id", () => {
+  assert.equal(webhookSignatureIsValid({ signature: `ts=${timestamp},ts=${timestamp},v1=${hash}`, requestId }, dataId, secret), false);
+  assert.equal(webhookSignatureIsValid({ signature: `ts=${timestamp},v1=${hash}` }, dataId, secret), false);
+});
+</file>
+
+<file path="index.html">
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Vini Pedro Tecnologia: desenvolvimento de software e soluções digitais para negócios.">
+  <title>Vini Pedro Tecnologia</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#inicio" aria-label="Vini Pedro Tecnologia, início">
+      <span class="brand-mark">VP</span>
+      <span>Vini Pedro<br><strong>Tecnologia</strong></span>
+    </a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+    <nav id="site-nav" class="site-nav" aria-label="Navegação principal">
+      <a href="#servicos">Serviços</a>
+      <a href="#sobre">Sobre</a>
+      <a href="#contato">Contato</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="inicio" class="hero">
+      <div class="hero-copy">
+        <p class="kicker">Desenvolvimento independente · Brasil</p>
+        <h1>Tecnologia que tira ideias do papel.</h1>
+        <p class="hero-text">Criação de sistemas, automações e experiências digitais com foco em clareza, segurança e resultado.</p>
+        <a class="button button-primary" href="#contato">Vamos conversar <span aria-hidden="true">↗</span></a>
+      </div>
+      <div class="hero-visual" aria-label="Ilustração abstrata de conexão entre tecnologia e pessoas">
+        <div class="orbit orbit-one"></div>
+        <div class="orbit orbit-two"></div>
+        <div class="signal signal-one"></div>
+        <div class="signal signal-two"></div>
+        <div class="core"><span>VP</span><small>digital studio</small></div>
+      </div>
+    </section>
+
+    <section id="servicos" class="section services-section">
+      <div class="section-heading">
+        <p class="kicker">O que faço</p>
+        <h2>Ferramentas digitais para o próximo passo.</h2>
+      </div>
+      <div class="service-grid">
+        <article class="service-card"><span class="service-number">01</span><h3>Sistemas web</h3><p>Aplicações sob medida para organizar operações e atender clientes com menos atrito.</p></article>
+        <article class="service-card accent-card"><span class="service-number">02</span><h3>Integrações</h3><p>Conexão entre APIs, pagamentos e ferramentas para transformar tarefas repetitivas em fluxo.</p></article>
+        <article class="service-card"><span class="service-number">03</span><h3>Automação</h3><p>Processos mais rápidos e confiáveis, com dados no lugar certo e decisões mais simples.</p></article>
+      </div>
+    </section>
+
+    <section id="sobre" class="section about-section">
+      <div class="about-label">VP / 2026</div>
+      <div>
+        <p class="kicker">Sobre o trabalho</p>
+        <h2>Pequeno no tamanho. Cuidadoso em cada detalhe.</h2>
+        <p class="about-text">A Vini Pedro Tecnologia desenvolve soluções digitais para pessoas e negócios que precisam sair do improviso. O trabalho combina engenharia prática, comunicação direta e atenção à segurança desde o primeiro passo.</p>
+      </div>
+    </section>
+
+    <section id="contato" class="contact-section">
+      <div>
+        <p class="kicker">Tem um projeto?</p>
+        <h2>Conte o que você quer construir.</h2>
+      </div>
+      <a class="contact-link" href="mailto:vinipedro629@gmail.com">vinipedro629@gmail.com <span aria-hidden="true">↗</span></a>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>© <span id="year"></span> Vini Pedro Tecnologia</span>
+    <span>Desenvolvimento de software · Brasil</span>
+  </footer>
+</body>
+</html>
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2026 awdti3
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="plan.md">
+# Plano de continuidade - Nucleo Mercado Pago
+
+## Contexto
+
+Este repositorio e o **nucleo reutilizavel** de integracao Mercado Pago/Pix/MCP. Ele nao e o SaaS final. No futuro, sera criado outro repositorio de SaaS e este nucleo sera copiado ou consumido por ele.
+
+Nao adicionar aqui login de clientes, tenants, painel administrativo, planos SaaS ou billing do SaaS. O foco deste repositorio e ficar tecnicamente completo, seguro, testavel e facil de reutilizar.
+
+Pais inicial: Brasil (`MLB`). Meio de pagamento inicial: Pix via Orders API.
+
+## Estado atual
+
+Implementado:
+
+- MCP local em TypeScript/Node.js com transporte `stdio`.
+- Busca e leitura online de paginas oficiais do Mercado Pago Brasil.
+- Cliente HTTP para API Mercado Pago.
+- Consulta de pagamentos e Orders pelo MCP.
+- Criacao de preferencia Checkout Pro pelo MCP, protegida por confirmacao, idempotencia e modo somente leitura.
+- Tela local Pix em `src/pix-server.ts`.
+- Criacao de Order Pix via `POST /v1/orders`.
+- `processing_mode: automatic`.
+- `payment_method.id: pix` e `payment_method.type: bank_transfer`.
+- Exibicao de `qr_code_base64`, `qr_code`, `ticket_url` e status.
+- Polling do status da Order e animacao de pagamento aprovado.
+- Carregamento automatico de `.env` com `dotenv/config`.
+- Bloqueio de criacao web quando `MERCADOPAGO_READ_ONLY=true`.
+- SQLite local em `src/database.ts`.
+- Persistencia de Orders, pagamentos, idempotency keys e webhook events.
+- Repeticao com a mesma idempotency key retorna a resposta salva.
+- Reuso da chave com payload diferente retorna conflito.
+- Validacao inicial de `x-signature` usando HMAC SHA-256.
+- Deduplicacao inicial de webhooks.
+- 12 testes passando no ultimo estado validado.
+
+## Commits e rollback
+
+Commits importantes:
+
+- `9fcff60` - ultima versao validada; corrige idempotency key do formulario e separa inicializacao do servidor para os testes.
+- `4450c1e` - adiciona SQLite, persistencia e idempotencia local.
+- `daba200` - aplica read-only tambem ao endpoint web Pix.
+- `bc8a634` - checkpoint antigo de recuperacao, criado pelo autor para voltar caso algo desse errado.
+
+O autor pediu que cada fase seja commitada diretamente na branch `main` com mensagem descritiva.
+
+Antes de qualquer rollback, verificar `git status` e nunca apagar alteracoes feitas pelo autor.
+
+## Regras de seguranca
+
+- Nunca imprimir, copiar ou incluir Access Token, segredo de webhook, QR Code ou dados pessoais em commits, logs ou README.
+- O arquivo `.env` esta no `.gitignore`. Manter apenas placeholders em `.env.example`.
+- As credenciais que apareceram na conversa foram expostas. O autor deve revogar e rotacionar o Access Token e `MERCADOPAGO_WEBHOOK_SECRET` antes de qualquer teste financeiro.
+- Nunca usar token de producao para testes de criacao de pagamento.
+- `MERCADOPAGO_READ_ONLY=true` deve ser o padrao.
+- Produzir respostas publicas minimas. Nao devolver payload bruto do Mercado Pago quando nao for necessario.
+- Nao inventar endpoints, campos, estados ou regras que nao estejam na documentacao oficial.
+- Para documentacao, usar somente fontes oficiais do Mercado Pago Brasil e informar a URL especifica.
+- Se um link oficial retornar 404, informar indisponibilidade; nao reconstruir conteudo.
+
+## Proxima sequencia de implementacao
+
+### Fase 3 - Webhook robusto
+
+1. Manter a funcao de verificacao de assinatura pura e testavel.
+2. Validar estritamente `x-signature`, `x-request-id`, `data.id`, timestamp numerico e hash hexadecimal.
+3. Confirmar na documentacao oficial a janela de tolerancia do timestamp antes de implementar rejeicao por idade. Nao assumir um numero sem fonte oficial.
+4. Capturar e validar os campos de acordo com o formato oficial do webhook.
+5. Persistir evento antes do processamento.
+6. Deduplicar por identificador estavel do evento/request, conforme documentacao oficial.
+7. Atualizar status consultando o estado autoritativo na API Mercado Pago.
+8. Impedir regressao de status aprovado para pendente.
+9. Responder erros sem vazar detalhes internos.
+10. Criar testes para assinatura valida, hash invalido, campos ausentes, replay, evento duplicado e status fora de ordem.
+
+### Fase 4 - Separacao e qualidade do nucleo
+
+1. Separar o servidor web Pix do cliente MCP e expor modulos reutilizaveis.
+2. Criar configuracao centralizada com validacao de ambiente.
+3. Validar dinheiro usando centavos inteiros ou decimal rigoroso; evitar conversao insegura com `Number`.
+4. Padronizar erros internos e mensagens publicas.
+5. Adicionar health check (`/health/live`) e encerramento gracioso.
+6. Adicionar limites de conexao, timeout de requisicao, limite de corpo e rate limiting local.
+7. Definir DTOs publicos para criacao e consulta de pagamentos.
+8. Adicionar testes HTTP com Mercado Pago mockado.
+
+### Fase 5 - Empacotamento reutilizavel
+
+1. Documentar contratos publicos do nucleo.
+2. Adicionar Dockerfile apenas quando o processo de inicializacao estiver estavel.
+3. Adicionar CI com build, testes, `npm audit` e verificacao de segredos.
+4. Documentar migracao de SQLite para PostgreSQL.
+5. Documentar como o futuro SaaS deve consumir este nucleo.
+6. Manter exemplos de MCP e sandbox Pix como consumidores, nao acoplar regras de SaaS.
+
+## Fora do escopo deste repositorio
+
+- Login de usuarios do SaaS.
+- Empresas, tenants e memberships.
+- Dashboard comercial.
+- Catalogo de produtos do SaaS.
+- Planos, assinaturas e billing do SaaS.
+- Marketplace multi-vendedor.
+- Suporte automatico a outros paises.
+
+Esses itens serao feitos no proximo repositorio SaaS usando este nucleo.
+
+## Arquivos principais
+
+- `src/index.ts`: servidor MCP e tools.
+- `src/pix-server.ts`: servidor HTTP e tela local Pix.
+- `src/mercadopago-client.ts`: chamadas autenticadas para API Mercado Pago.
+- `src/database.ts`: SQLite e persistencia local.
+- `src/pix-status.ts`: normalizacao de status.
+- `src/catalog.ts`: catalogo curado de documentacao oficial.
+- `test/`: testes unitarios.
+- `.vscode/mcp.json`: configuracao do MCP no VS Code.
+- `.env.example`: nomes das variaveis sem segredos.
+- `README.md`: instrucoes para desenvolvedor.
+
+## Comandos de validacao
+
+Executar na raiz do repositorio:
+
+```bash
+cd /workspaces/Mercado-Pago
+npm install
+npm run build
+npm test
+git diff --check
+git status --short
+```
+
+Smoke test do MCP:
+
+```bash
+printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"smoke-test","version":"1.0.0"}}}' | node dist/index.js
+```
+
+Servidor Pix local, somente com credencial de teste:
+
+```bash
+MERCADOPAGO_READ_ONLY=false npm run pix
+```
+
+Se a porta 3000 estiver ocupada:
+
+```bash
+PORT=3001 MERCADOPAGO_READ_ONLY=false npm run pix
+```
+
+Abrir `http://localhost:3000` ou `http://localhost:3001`.
+
+Nao iniciar cobranca com token de producao.
+
+## Regra para a proxima IA
+
+Continue a implementacao em pequenas fases. Antes de editar, leia os arquivos atuais e formule uma hipotese local verificavel. Depois da primeira edicao, rode uma validacao focada. Ao terminar uma fase, rode build/testes e crie um commit na `main`.
+
+Preserve o funcionamento atual do MCP e da tela Pix. Se uma alteracao quebrar o sistema, use o historico Git para voltar ao ultimo commit validado, sem apagar alteracoes do autor.
+</file>
+
+<file path="script.js">
+const menuButton = document.querySelector('.menu-toggle');
+const navigation = document.querySelector('#site-nav');
+
+menuButton?.addEventListener('click', () => {
+  const isOpen = menuButton.getAttribute('aria-expanded') === 'true';
+  menuButton.setAttribute('aria-expanded', String(!isOpen));
+  navigation?.classList.toggle('is-open', !isOpen);
+});
+
+document.querySelectorAll('#site-nav a').forEach((link) => {
+  link.addEventListener('click', () => {
+    menuButton?.setAttribute('aria-expanded', 'false');
+    navigation?.classList.remove('is-open');
+  });
+});
+
+document.querySelector('#year').textContent = String(new Date().getFullYear());
+</file>
+
+<file path="styles.css">
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root { --ink:#152321; --muted:#64736f; --paper:#f4f5ef; --lime:#d8f36b; --blue:#a7d8f5; --line:#cbd5ce; --dark:#1d302a; }
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { margin:0; color:var(--ink); background:var(--paper); font-family:'Manrope', sans-serif; }
+a { color:inherit; text-decoration:none; }
+.site-header, main, .site-footer { width:min(1180px, calc(100% - 64px)); margin:0 auto; }
+.site-header { display:flex; align-items:center; justify-content:space-between; padding:25px 0; border-bottom:1px solid var(--line); }
+.brand { display:flex; align-items:center; gap:11px; font-size:11px; line-height:1.15; letter-spacing:.02em; }
+.brand strong { font-weight:800; }
+.brand-mark { display:grid; place-items:center; width:39px; aspect-ratio:1; background:var(--ink); color:var(--lime); font:500 12px 'DM Mono', monospace; transform:rotate(-8deg); }
+.site-nav { display:flex; gap:30px; font-size:13px; font-weight:700; }
+.site-nav a { transition:color .2s ease; }
+.site-nav a:hover { color:#718d25; }
+.menu-toggle { display:none; border:1px solid var(--ink); background:transparent; padding:8px 12px; font:600 12px inherit; }
+.hero { min-height:620px; display:grid; grid-template-columns:1.05fr .95fr; align-items:center; gap:40px; padding:70px 0 85px; }
+.kicker { margin:0 0 19px; color:#718d25; font:500 11px 'DM Mono', monospace; letter-spacing:.12em; text-transform:uppercase; }
+h1, h2, h3, p { margin-top:0; }
+h1 { max-width:690px; margin-bottom:27px; font-size:clamp(46px, 7.2vw, 91px); line-height:.98; letter-spacing:-.06em; font-weight:800; }
+h2 { margin-bottom:0; font-size:clamp(32px, 4vw, 54px); line-height:1.02; letter-spacing:-.055em; font-weight:800; }
+.hero-text { max-width:490px; margin-bottom:34px; color:var(--muted); font-size:17px; line-height:1.65; }
+.button { display:inline-flex; align-items:center; gap:18px; padding:15px 18px; font-size:13px; font-weight:800; }
+.button-primary { background:var(--ink); color:var(--lime); }
+.button-primary span, .contact-link span { font-size:18px; }
+.hero-visual { position:relative; min-height:430px; overflow:hidden; background:var(--blue); }
+.hero-visual:before, .hero-visual:after { content:''; position:absolute; border:1px solid rgba(21,35,33,.35); border-radius:50%; }
+.hero-visual:before { inset:17% -5% 17% 19%; }
+.hero-visual:after { inset:5% 15% 5% 5%; }
+.orbit { position:absolute; border:1px solid var(--ink); border-radius:50%; transform:rotate(-25deg); }
+.orbit-one { width:70%; height:38%; left:15%; top:31%; }
+.orbit-two { width:43%; height:76%; left:29%; top:12%; }
+.core { position:absolute; top:50%; left:50%; display:grid; place-items:center; width:145px; aspect-ratio:1; background:var(--lime); transform:translate(-50%,-50%) rotate(8deg); box-shadow:11px 11px 0 var(--ink); }
+.core span { font-size:37px; font-weight:800; letter-spacing:-.08em; }
+.core small { margin-top:-35px; font:10px 'DM Mono', monospace; }
+.signal { position:absolute; width:12px; height:12px; border-radius:50%; background:var(--ink); }
+.signal-one { top:18%; left:20%; }.signal-two { right:18%; bottom:21%; background:var(--lime); border:1px solid var(--ink); }
+.section { padding:105px 0; border-top:1px solid var(--line); }
+.section-heading { display:grid; grid-template-columns:1fr 1.5fr; gap:30px; margin-bottom:53px; }
+.service-grid { display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--ink); }
+.service-card { min-height:260px; padding:24px 24px 28px 0; border-right:1px solid var(--line); }.service-card + .service-card { padding-left:24px; }.service-card:last-child { border:0; }
+.service-number { display:block; margin-bottom:67px; color:var(--muted); font:11px 'DM Mono', monospace; }
+.service-card h3 { margin-bottom:13px; font-size:20px; }.service-card p { max-width:280px; margin-bottom:0; color:var(--muted); font-size:14px; line-height:1.7; }
+.accent-card { background:var(--lime); border-color:var(--ink); }
+.about-section { display:grid; grid-template-columns:1fr 1.5fr; gap:30px; background:var(--dark); color:var(--paper); margin-left:calc((1180px - 100vw) / 2); margin-right:calc((1180px - 100vw) / 2); padding-left:max(32px, calc((100vw - 1180px) / 2)); padding-right:max(32px, calc((100vw - 1180px) / 2)); }
+.about-section .kicker { color:var(--lime); }.about-label { color:var(--lime); font:11px 'DM Mono', monospace; }.about-text { max-width:600px; margin:30px 0 0; color:#b6c3bc; font-size:16px; line-height:1.8; }
+.contact-section { display:flex; align-items:end; justify-content:space-between; gap:30px; padding:100px 0; }.contact-link { padding-bottom:8px; border-bottom:2px solid var(--ink); font-size:clamp(17px, 2.2vw, 26px); font-weight:700; }.contact-link span { margin-left:15px; }
+.site-footer { display:flex; justify-content:space-between; padding:23px 0; border-top:1px solid var(--line); color:var(--muted); font:10px 'DM Mono', monospace; text-transform:uppercase; letter-spacing:.05em; }
+@media (max-width:760px) { .site-header, main, .site-footer { width:min(100% - 36px, 560px); }.menu-toggle { display:block; }.site-nav { display:none; position:absolute; top:75px; right:18px; z-index:2; flex-direction:column; gap:0; width:170px; padding:8px 0; background:var(--paper); border:1px solid var(--ink); box-shadow:5px 5px 0 var(--ink); }.site-nav.is-open { display:flex; }.site-nav a { padding:12px 15px; }.hero { grid-template-columns:1fr; min-height:0; padding:65px 0 80px; }.hero-visual { min-height:320px; }.section-heading, .about-section { grid-template-columns:1fr; }.section { padding:75px 0; }.service-grid { grid-template-columns:1fr; }.service-card, .service-card + .service-card { min-height:0; padding:25px 0; border-right:0; border-bottom:1px solid var(--line); }.service-number { margin-bottom:35px; }.about-section { margin-left:-18px; margin-right:-18px; padding-left:18px; padding-right:18px; }.contact-section, .site-footer { align-items:flex-start; flex-direction:column; }.contact-section { padding:75px 0; }.site-footer { gap:10px; } }
+</file>
+
+<file path="src/index.ts">
+import "dotenv/config";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
+import { documentationCatalog, DOCUMENTATION_BASE } from "./catalog.js";
+import { fetchDocumentation, searchDocumentation } from "./docs-client.js";
+import { isReadOnly, mercadoPagoRequest, requireMutationConfirmation } from "./mercadopago-client.js";
+
+const server = new McpServer({ name: "mercado-pago-brasil", version: "0.1.0" });
+
+const result = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] });
+
+server.tool(
+  "search_documentation",
+  "Busca na documentacao oficial do Mercado Pago Brasil (MLB).",
+  { query: z.string().min(1), limit: z.number().int().min(1).max(20).optional() },
+  async ({ query, limit }) => result({ country: "BR", source: DOCUMENTATION_BASE, results: searchDocumentation(query, limit) })
+);
+
+server.tool(
+  "read_documentation",
+  "Le uma pagina oficial do catalogo de documentacao do Mercado Pago Brasil.",
+  { path: z.string().min(1) },
+  async ({ path }) => {
+    const entry = documentationCatalog.find((item) => item.path === path);
+    if (!entry) throw new Error("Caminho nao encontrado no catalogo oficial permitido.");
+    const page = await fetchDocumentation(entry);
+    return result({ country: "BR", ...entry, ...page });
+  }
+);
+
+server.tool(
+  "get_payment",
+  "Consulta um pagamento pela Payments API usando Access Token do ambiente.",
+  { paymentId: z.string().min(1) },
+  async ({ paymentId }) => result(await mercadoPagoRequest({ method: "GET", path: `/v1/payments/${encodeURIComponent(paymentId)}` }))
+);
+
+server.tool(
+  "get_order",
+  "Consulta uma order usando Access Token do ambiente.",
+  { orderId: z.string().min(1) },
+  async ({ orderId }) => result(await mercadoPagoRequest({ method: "GET", path: `/v1/orders/${encodeURIComponent(orderId)}` }))
+);
+
+server.tool(
+  "create_preference",
+  "Cria uma preferencia do Checkout Pro. Desabilitada por padrao no modo somente leitura.",
+  { preference: z.record(z.unknown()), confirmed: z.boolean(), idempotencyKey: z.string().min(1) },
+  async ({ preference, confirmed, idempotencyKey }) => {
+    requireMutationConfirmation(confirmed, idempotencyKey);
+    return result(await mercadoPagoRequest({ method: "POST", path: "/checkout/preferences", body: preference, idempotencyKey }));
+  }
+);
+
+server.tool(
+  "mutate_order",
+  "Executa uma operacao de Orders. Requer confirmacao, idempotencia e modo leitura desativado.",
+  { orderId: z.string().min(1), operation: z.enum(["capture", "cancel", "refund"]), body: z.record(z.unknown()).optional(), confirmed: z.boolean(), idempotencyKey: z.string().min(1) },
+  async ({ orderId, operation, body, confirmed, idempotencyKey }) => {
+    requireMutationConfirmation(confirmed, idempotencyKey);
+    const pathByOperation = { capture: "capture", cancel: "cancel", refund: "refund" } as const;
+    return result(await mercadoPagoRequest({ method: "POST", path: `/v1/orders/${encodeURIComponent(orderId)}/${pathByOperation[operation]}`, body, idempotencyKey }));
+  }
+);
+
+server.tool(
+  "server_status",
+  "Informa o pais, a fonte e se o MCP esta em modo somente leitura.",
+  {},
+  async () => result({ country: "BR", documentation: DOCUMENTATION_BASE, readOnly: isReadOnly(), authenticated: Boolean(process.env.MERCADOPAGO_ACCESS_TOKEN) })
+);
+
+const transport = new StdioServerTransport();
+await server.connect(transport);
+console.error("Mercado Pago MCP iniciado via stdio para Brasil (MLB).");
+</file>
+
+<file path="src/mercadopago-client.ts">
+const API_BASE = "https://api.mercadopago.com";
+const REQUEST_TIMEOUT_MS = 15_000;
+
+export type ApiRequest = {
+  method: "GET" | "POST" | "PUT" | "DELETE";
+  path: string;
+  body?: Record<string, unknown>;
+  idempotencyKey?: string;
+};
+
+function accessToken(): string {
+  const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
+  if (!token) throw new Error("Defina MERCADOPAGO_ACCESS_TOKEN no ambiente do processo MCP.");
+  return token;
+}
+
+export async function mercadoPagoRequest(request: ApiRequest): Promise<unknown> {
+  if (!request.path.startsWith("/")) throw new Error("O caminho da API deve começar com '/'.");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken()}`,
+      Accept: "application/json"
+    };
+    if (request.body) headers["Content-Type"] = "application/json";
+    if (request.idempotencyKey) headers["X-Idempotency-Key"] = request.idempotencyKey;
+    const response = await fetch(`${API_BASE}${request.path}`, {
+      method: request.method,
+      headers,
+      body: request.body ? JSON.stringify(request.body) : undefined,
+      signal: controller.signal
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(`Mercado Pago retornou HTTP ${response.status}: ${JSON.stringify(payload)}`);
+    return payload;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export function isReadOnly(): boolean {
+  return process.env.MERCADOPAGO_READ_ONLY !== "false";
+}
+
+export function requireWritesEnabled(): void {
+  if (isReadOnly()) {
+    throw new Error("Modo somente leitura ativo. Defina MERCADOPAGO_READ_ONLY=false para criar pagamentos.");
+  }
+}
+
+export function requireMutationConfirmation(confirmed: boolean, idempotencyKey?: string): void {
+  if (isReadOnly()) throw new Error("Modo somente leitura ativo. Defina MERCADOPAGO_READ_ONLY=false para habilitar alteracoes.");
+  if (!confirmed) throw new Error("Esta operacao exige confirmacao explicita: use confirmed=true.");
+  if (!idempotencyKey?.trim()) throw new Error("Esta operacao exige um idempotencyKey.");
+}
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "types": ["node"],
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*.ts"]
+}
+</file>
+
+<file path=".gitignore">
+node_modules/
+dist/
+data/
+.env
+.env.*
+!.env.example
+token.md
+.env.example
+</file>
+
+<file path="test/mercadopago-client.test.ts">
+/// <reference types="node" />
+
+import test from "node:test";
+import assert from "node:assert/strict";
+import { isReadOnly, requireMutationConfirmation, requireWritesEnabled } from "../src/mercadopago-client.js";
+import { paymentStatus, publicPaymentStatus } from "../src/pix-status.js";
+
+test("mantem modo somente leitura por padrao", () => {
+  const previous = process.env.MERCADOPAGO_READ_ONLY;
+  delete process.env.MERCADOPAGO_READ_ONLY;
+  assert.equal(isReadOnly(), true);
+  if (previous === undefined) delete process.env.MERCADOPAGO_READ_ONLY;
+  else process.env.MERCADOPAGO_READ_ONLY = previous;
+});
+
+test("bloqueia mutacao sem modo explicitamente habilitado", () => {
+  const previous = process.env.MERCADOPAGO_READ_ONLY;
+  process.env.MERCADOPAGO_READ_ONLY = "true";
+  assert.throws(() => requireMutationConfirmation(true, "idempotency-test"), /somente leitura/i);
+  if (previous === undefined) delete process.env.MERCADOPAGO_READ_ONLY;
+  else process.env.MERCADOPAGO_READ_ONLY = previous;
+});
+
+test("bloqueia escrita web no modo somente leitura", () => {
+  const previous = process.env.MERCADOPAGO_READ_ONLY;
+  process.env.MERCADOPAGO_READ_ONLY = "true";
+  assert.throws(() => requireWritesEnabled(), /somente leitura/i);
+  if (previous === undefined) delete process.env.MERCADOPAGO_READ_ONLY;
+  else process.env.MERCADOPAGO_READ_ONLY = previous;
+});
+
+test("permite escrita somente quando read-only e false", () => {
+  const previous = process.env.MERCADOPAGO_READ_ONLY;
+  process.env.MERCADOPAGO_READ_ONLY = "false";
+  assert.doesNotThrow(() => requireWritesEnabled());
+  if (previous === undefined) delete process.env.MERCADOPAGO_READ_ONLY;
+  else process.env.MERCADOPAGO_READ_ONLY = previous;
+});
+
+test("exige confirmacao e idempotencia para mutacoes", () => {
+  const previous = process.env.MERCADOPAGO_READ_ONLY;
+  process.env.MERCADOPAGO_READ_ONLY = "false";
+  assert.throws(() => requireMutationConfirmation(false, "idempotency-test"), /confirmacao/i);
+  assert.throws(() => requireMutationConfirmation(true), /idempotencyKey/i);
+  assert.doesNotThrow(() => requireMutationConfirmation(true, "idempotency-test"));
+  if (previous === undefined) delete process.env.MERCADOPAGO_READ_ONLY;
+  else process.env.MERCADOPAGO_READ_ONLY = previous;
+});
+
+test("so marca Pix como aprovado quando o pagamento esta aprovado", () => {
+  assert.equal(paymentStatus({ transactions: { payments: [{ status: "approved" }] } }), "approved");
+  assert.equal(paymentStatus({ status: "processed", status_detail: "accredited" }), "approved");
+  assert.equal(paymentStatus({ transactions: { payments: [{ status: "processed", status_detail: "accredited" }] } }), "approved");
+  assert.equal(paymentStatus({ transactions: { payments: [{ status: "action_required" }] } }), "pending");
+  assert.equal(paymentStatus({ transactions: { payments: [{ status: "rejected" }] } }), "rejected");
+});
+
+test("retorna mensagens publicas sem dados da API ou credenciais", () => {
+  assert.deepEqual(publicPaymentStatus("approved"), { status: "approved", message: "Pagamento recebido e aprovado" });
+});
+</file>
+
+<file path="package.json">
+{
+  "name": "mercado-pago-mcp",
+  "version": "0.1.0",
+  "description": "MCP local para consultar a documentacao e as APIs do Mercado Pago no Brasil.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "pix": "node dist/pix-server.js",
+    "pix:dev": "tsx src/pix-server.ts",
+    "test": "node --test --import tsx"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.0",
+    "better-sqlite3": "^13.0.3",
+    "dotenv": "^17.4.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.3.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}
+</file>
+
+<file path="README.md">
+# Mercado Pago MCP
+
+MCP local para consultar a documentacao oficial do Mercado Pago e, com credenciais de teste, consultar ou executar APIs no contexto Brasil (`MLB`). O servidor usa transporte `stdio` e foi pensado para VS Code, Claude Desktop e clientes MCP compativeis.
+
+## Requisitos
+
+- Node.js 20 ou superior
+- npm
+- Conectividade com `www.mercadopago.com.br` para leitura online
+- Access Token de teste somente para as tools de API
+
+## Instalar e executar
+
+```bash
+npm install
+npm run build
+npm start
+```
+
+No VS Code, a configuracao em `.vscode/mcp.json` inicia o servidor com `npm run dev`. Use a acao de MCP do editor para iniciar e verificar as tools.
+
+## Testar Pix virtualmente
+
+O projeto tambem inclui uma tela local de sandbox para criar uma Order Pix e exibir o QR Code, o Pix Copia e Cola e o link de pagamento.
+
+```bash
+export MERCADOPAGO_ACCESS_TOKEN='SEU_ACCESS_TOKEN_DE_TESTE'
+export MERCADOPAGO_READ_ONLY='false'
+npm run build
+npm run pix
+```
+
+Abra `http://localhost:3000`. Informe um valor pequeno e o e-mail de uma conta de teste. O backend envia `POST /v1/orders` com `processing_mode: automatic`, `payment_method.id: pix`, `payment_method.type: bank_transfer` e uma chave `X-Idempotency-Key` nova por Order.
+
+O fluxo exige um Access Token de teste porque cria uma Order. Para somente consultar documentacao, mantenha `MERCADOPAGO_READ_ONLY=true`.
+
+O endpoint web exige `X-Idempotency-Key` com pelo menos 8 caracteres para evitar Orders duplicadas em retries. A resposta é persistida em SQLite local (`DATABASE_PATH`, por padrao `./data/mercado-pago.sqlite`), que deve ser substituido por PostgreSQL antes de escalar o SaaS.
+
+Depois que a Order for criada, a tela consulta o status pelo identificador publico e mostra `Pagamento recebido e aprovado` somente quando a API confirmar `payment.status=approved`. Para receber atualizacoes automaticas, configure `MERCADOPAGO_WEBHOOK_SECRET` e uma URL HTTPS publica apontando para `/webhooks/mercadopago`; `localhost` sozinho nao recebe webhooks do Mercado Pago.
+
+## Credenciais
+
+Copie `.env.example` para `.env` apenas para uso local ou exporte as variaveis no ambiente do processo:
+
+```bash
+export MERCADOPAGO_ACCESS_TOKEN='APP_USR-seu-token-de-teste'
+export MERCADOPAGO_READ_ONLY='true'
+npm run dev
+```
+
+Nunca inclua tokens no codigo, commits, logs ou mensagens. O token fornecido durante a configuracao apareceu em um comando de terminal; por seguranca, revogue-o e gere outro no painel do Mercado Pago antes de continuar. Prefira credenciais de teste e siga o checklist oficial antes de usar producao.
+
+## Tools
+
+- `search_documentation`: pesquisa no catalogo curado de paginas oficiais brasileiras.
+- `read_documentation`: baixa uma pagina HTTPS oficial do catalogo permitido.
+- `get_payment`: consulta um pagamento por ID.
+- `get_order`: consulta uma order por ID.
+- `create_preference`: cria uma preferencia do Checkout Pro; exige `confirmed=true`, `idempotencyKey` e `MERCADOPAGO_READ_ONLY=false`.
+- `mutate_order`: captura, cancela ou reembolsa uma order; exige as mesmas protecoes.
+- `server_status`: mostra pais, fonte, autenticacao detectada e modo somente leitura.
+
+As operacoes de alteracao permanecem bloqueadas por padrao. A confirmacao da tool e uma barreira de seguranca, nao substitui validacao de negocio, permissao do usuario, idempotencia ou os requisitos da API.
+
+## Documentacao oficial
+
+- [Mercado Pago MCP Server](https://www.mercadopago.com.br/developers/pt/docs/mcp-server/overview)
+- [Checkout API via Orders](https://www.mercadopago.com.br/developers/pt/docs/checkout-api-orders/overview)
+- [Checkout Pro](https://www.mercadopago.com.br/developers/pt/docs/checkout-pro/overview)
+- [Credenciais](https://www.mercadopago.com.br/developers/pt/docs/your-integrations/credentials)
+- [Webhooks](https://www.mercadopago.com.br/developers/pt/docs/your-integrations/notifications/webhooks)
+
+O catálogo pode conter links removidos ou alterados. Respostas HTTP 404 são tratadas como conteúdo indisponível; o servidor não reconstrói páginas ausentes nem substitui a documentação oficial por blogs ou fóruns.
+
+## Testes
+
+```bash
+npm run build
+npm test
+```
+
+Os testes usam apenas dados locais e mocks. Nenhuma credencial real é necessária
+</file>
+
+<file path="src/pix-server.ts">
+import "dotenv/config";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { fileURLToPath } from "node:url";
+import { findPaymentByExternalId, getIdempotentResponse, getOrder, getPayment, saveIdempotentResponse, saveOrder, savePayment, saveWebhookEvent, updatePaymentStatus } from "./database.js";
+import { mercadoPagoRequest, requireWritesEnabled } from "./mercadopago-client.js";
+import { paymentStatus, publicPaymentStatus, type PixStatus } from "./pix-status.js";
+
+const port = Number(process.env.PORT ?? 3000);
+export type PixInput = { amount: string; email: string };
+
+export type PixPaymentData = {
+  order_id: string;
+  status: unknown;
+  status_detail: unknown;
+  payment_id?: unknown;
+  ticket_url?: unknown;
+  qr_code: string;
+  qr_code_base64: string;
+};
+
+const html = `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pix Sandbox | Mercado Pago</title>
+  <style>
+    :root { color-scheme: light; --ink:#14211b; --muted:#607068; --green:#009b72; --mint:#e5f7ef; --line:#d8e5df; --paper:#fbfdfc; }
+    * { box-sizing:border-box } body { margin:0; background:linear-gradient(135deg,#f3faf6,#fff 55%,#e8f6ef); color:var(--ink); font:16px/1.5 Georgia,serif; min-height:100vh }
+    main { width:min(980px,calc(100% - 32px)); margin:0 auto; padding:56px 0 72px; display:grid; grid-template-columns:1.1fr .9fr; gap:40px; align-items:start; animation:page-enter .8s ease-out both }
+    main > section:first-child { animation:copy-enter .8s .12s ease-out both }
+    main > section:last-child { animation:copy-enter .8s .24s ease-out both }
+    .eyebrow { color:var(--green); font:700 12px/1.2 Arial,sans-serif; letter-spacing:2px; text-transform:uppercase }
+    h1 { font-size:clamp(40px,7vw,72px); line-height:.95; margin:18px 0; max-width:600px; font-weight:500 }
+    p { color:var(--muted); max-width:560px } form, .result { background:rgba(255,255,255,.84); border:1px solid var(--line); padding:24px; box-shadow:0 14px 45px rgba(22,83,60,.08) }
+    label { display:block; font:700 12px Arial,sans-serif; margin:0 0 7px; color:var(--muted); text-transform:uppercase; letter-spacing:.7px }
+    input { width:100%; border:1px solid var(--line); padding:13px 14px; margin-bottom:17px; font:16px Georgia,serif; background:var(--paper) }
+    button { width:100%; cursor:pointer; border:0; padding:14px; background:var(--green); color:white; font:700 14px Arial,sans-serif; text-transform:uppercase; letter-spacing:.5px; transition:transform .2s ease, box-shadow .2s ease }
+    button:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 18px rgba(0,155,114,.2) }
+    button:disabled { opacity:.55; cursor:wait } .result { margin-top:20px; display:none; animation:result-enter .45s ease-out both } .result.visible { display:block }
+    .qr { width:min(100%,280px); display:block; margin:0 auto 18px; background:#fff; padding:10px; border:1px solid var(--line); animation:qr-in .6s .15s ease-out both }
+    .copy { font-family:monospace; font-size:12px; word-break:break-all; background:var(--mint); padding:12px; color:var(--ink) }
+    .status { font:700 12px Arial,sans-serif; text-transform:uppercase; color:var(--green) } .status.waiting { animation:status-pulse 1.8s ease-in-out infinite } .error { color:#b42318 }
+    .payment-received { display:none; position:relative; overflow:hidden; text-align:center; padding:20px 10px 12px; background:var(--mint); margin:-8px -8px 18px }
+    .payment-received.visible { display:block; animation:success-reveal .7s cubic-bezier(.2,.9,.2,1.2) both }
+    .payment-received h2 { margin:12px 0 4px; font-size:28px; font-weight:500 }
+    .payment-received p { margin:0 auto; color:var(--ink) }
+    .success-mark { width:64px; height:64px; margin:auto; border-radius:50%; display:grid; place-items:center; background:var(--green); color:white; font:36px Arial,sans-serif; animation:mark-pop .65s .12s cubic-bezier(.2,1.5,.4,1) both }
+    .confetti { position:absolute; inset:0; pointer-events:none }
+    .confetti i { position:absolute; width:7px; height:14px; background:#f5b700; animation:confetti-fall 1s ease-out both }
+    .confetti i:nth-child(1) { left:15%; top:8%; transform:rotate(22deg); background:#e65f5c }
+    .confetti i:nth-child(2) { left:30%; top:2%; transform:rotate(-18deg); background:#1976d2; animation-delay:.08s }
+    .confetti i:nth-child(3) { right:28%; top:4%; transform:rotate(36deg); background:#e65f5c; animation-delay:.16s }
+    .confetti i:nth-child(4) { right:12%; top:12%; transform:rotate(-28deg); background:#1976d2; animation-delay:.24s }
+    @keyframes page-enter { from { opacity:0; transform:translateY(18px) } to { opacity:1; transform:none } }
+    @keyframes copy-enter { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:none } }
+    @keyframes result-enter { from { opacity:0; transform:translateY(14px) } to { opacity:1; transform:none } }
+    @keyframes qr-in { from { opacity:0; transform:scale(.94) } to { opacity:1; transform:scale(1) } }
+    @keyframes status-pulse { 50% { opacity:.55 } }
+    @keyframes success-reveal { from { opacity:0; transform:translateY(16px) scale(.97) } to { opacity:1; transform:none } }
+    @keyframes mark-pop { from { opacity:0; transform:scale(.2) rotate(-30deg) } to { opacity:1; transform:scale(1) rotate(0) } }
+    @keyframes confetti-fall { from { opacity:0; transform:translateY(-18px) rotate(0) } to { opacity:1; transform:translateY(42px) rotate(130deg) } }
+    @media (prefers-reduced-motion:reduce) { *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important } }
+    @media (max-width:720px) { main { grid-template-columns:1fr; padding-top:32px; gap:24px } h1 { font-size:48px } }
+  </style>
+</head>
+<body><main>
+  <section><div class="eyebrow">Mercado Pago · Brasil · Sandbox</div><h1>Pix, pronto para testar.</h1><p>Gere uma Order de teste e visualize o QR Code ou o Pix Copia e Cola. Nenhuma credencial sai do backend.</p></section>
+  <section><form id="pix-form"><label for="amount">Valor em reais</label><input id="amount" name="amount" type="number" value="10.00" min="0.01" step="0.01" required><label for="email">E-mail do pagador</label><input id="email" name="email" type="email" value="test_user_br@testuser.com" required><button id="submit" type="submit">Gerar Pix de teste</button></form>
+  <article id="result" class="result"><div id="received" class="payment-received"><div class="confetti"><i></i><i></i><i></i><i></i></div><div class="success-mark">&#10003;</div><h2>Pagamento recebido!</h2><p>O Pix foi aprovado com sucesso.</p></div><div id="status" class="status waiting"></div><p id="order"></p><img id="qr" class="qr" alt="QR Code Pix"><div class="copy" id="copy"></div><p><a id="ticket" target="_blank" rel="noreferrer">Abrir instruções de pagamento</a></p></article></section>
+</main><script>
+const form=document.querySelector('#pix-form'), button=document.querySelector('#submit'), result=document.querySelector('#result');
+form.addEventListener('submit', async (event)=>{ event.preventDefault(); button.disabled=true; button.textContent='Gerando...'; result.classList.remove('visible');
+  try { const body={amount:Number(form.amount.value),email:form.email.value}; const response=await fetch('/api/orders/pix',{method:'POST',headers:{'content-type':'application/json','X-Idempotency-Key':crypto.randomUUID()},body:JSON.stringify(body)}); const data=await response.json(); if(!response.ok) throw new Error(data.error||'Nao foi possivel criar a Order.');
+    document.querySelector('#status').textContent='Aguardando pagamento · '+data.status_detail; document.querySelector('#order').textContent='Order: '+data.order_id; document.querySelector('#qr').src='data:image/png;base64,'+data.qr_code_base64; document.querySelector('#copy').textContent=data.qr_code; document.querySelector('#ticket').href=data.ticket_url; result.classList.add('visible');
+    const checkStatus=async()=>{ const statusResponse=await fetch('/api/payments/'+encodeURIComponent(data.public_payment_id)+'/status'); const statusData=await statusResponse.json(); if(!statusResponse.ok) throw new Error(statusData.error||'Nao foi possivel consultar o pagamento.'); document.querySelector('#status').textContent=statusData.message; if(statusData.status==='approved'){ clearInterval(statusTimer); document.querySelector('#status').classList.remove('waiting'); document.querySelector('#received').classList.add('visible'); document.querySelector('#qr').style.display='none'; document.querySelector('#copy').style.display='none'; document.querySelector('#ticket').parentElement.style.display='none'; } if(statusData.status==='rejected'){ clearInterval(statusTimer); document.querySelector('#status').classList.remove('waiting'); document.querySelector('#status').classList.add('error'); } }; const statusTimer=setInterval(()=>{ checkStatus().catch(error=>{ clearInterval(statusTimer); document.querySelector('#status').textContent=error.message; document.querySelector('#status').classList.add('error'); }); },5000); checkStatus();
+  } catch(error) { document.querySelector('#status').textContent=error.message; document.querySelector('#status').classList.add('error'); result.classList.add('visible'); } finally { button.disabled=false; button.textContent='Gerar Pix de teste'; }
+});
+</script></body></html>`;
+
+function json(response: ServerResponse, status: number, body: unknown): void {
+  response.writeHead(status, { "content-type": "application/json; charset=utf-8" });
+  response.end(JSON.stringify(body));
+}
+
+async function requestBody(request: IncomingMessage): Promise<Record<string, unknown>> {
+  let body = "";
+  for await (const chunk of request) {
+    body += chunk;
+    if (Buffer.byteLength(body) > 100_000) throw new Error("Corpo da requisicao excede o limite permitido.");
+  }
+  return JSON.parse(body || "{}");
+}
+
+export function validatePixInput(body: Record<string, unknown>): PixInput {
+  const amount = Number(body.amount);
+  const email = typeof body.email === "string" ? body.email.trim() : "";
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 100000) throw new Error("Informe um valor entre 0,01 e 100.000,00.");
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("Informe um e-mail valido.");
+  return { amount: amount.toFixed(2), email };
+}
+
+export function createPixOrderPayload(body: PixInput, idempotencyKey: string): Record<string, unknown> {
+  return {
+    type: "online",
+    total_amount: body.amount,
+    external_reference: `pix-sandbox-${idempotencyKey}`,
+    processing_mode: "automatic",
+    transactions: { payments: [{ amount: body.amount, payment_method: { id: "pix", type: "bank_transfer" } }] },
+    payer: { email: body.email }
+  };
+}
+
+export function extractPixPaymentData(order: Record<string, any>): PixPaymentData {
+  const payment = order.transactions?.payments?.[0];
+  const paymentMethod = payment?.payment_method;
+  if (
+    typeof order.id !== "string" ||
+    typeof paymentMethod?.qr_code !== "string" ||
+    typeof paymentMethod?.qr_code_base64 !== "string"
+  ) {
+    throw new Error("A API nao retornou os dados necessarios para gerar o QR Code Pix.");
+  }
+
+  return {
+    order_id: order.id,
+    status: order.status,
+    status_detail: order.status_detail,
+    payment_id: payment?.id,
+    ticket_url: paymentMethod.ticket_url,
+    qr_code: paymentMethod.qr_code,
+    qr_code_base64: paymentMethod.qr_code_base64
+  };
+}
+
+export type WebhookSignatureHeaders = {
+  signature?: string;
+  requestId?: string;
+};
+
+export function webhookSignatureIsValid(headers: WebhookSignatureHeaders, dataId: string, secret: string | undefined): boolean {
+  const signature = headers.signature;
+  const requestId = headers.requestId;
+  if (!secret || typeof signature !== "string" || typeof requestId !== "string" || !requestId.trim() || !dataId.trim()) {
+    console.error("Webhook rejeitado: assinatura incompleta", {
+      hasSecret: Boolean(secret),
+      hasSignature: typeof signature === "string",
+      hasRequestId: typeof requestId === "string",
+      hasDataId: Boolean(dataId)
+    });
+    return false;
+  }
+  const values: Record<string, string> = {};
+  for (const part of signature.split(",")) {
+    const separator = part.indexOf("=");
+    if (separator <= 0 || values[part.slice(0, separator).trim()]) return false;
+    const key = part.slice(0, separator).trim();
+    const value = part.slice(separator + 1).trim();
+    if (!key || !value) return false;
+    values[key] = value;
+  }
+  if (!/^\d+$/.test(values.ts ?? "") || !/^[a-f\d]{64}$/i.test(values.v1 ?? "")) {
+    console.error("Webhook rejeitado: formato de x-signature invalido", { hasTimestamp: Boolean(values.ts), hasHash: Boolean(values.v1) });
+    return false;
+  }
+  const manifest = `id:${dataId};request-id:${requestId};ts:${values.ts};`;
+  const expected = createHmac("sha256", secret).update(manifest).digest("hex");
+  const received = Buffer.from(values.v1, "hex");
+  const expectedBuffer = Buffer.from(expected, "hex");
+  const valid = received.length === expectedBuffer.length && timingSafeEqual(received, expectedBuffer);
+  if (!valid) console.error("Webhook rejeitado: assinatura nao confere", { hasDataId: Boolean(dataId), hasRequestId: true });
+  return valid;
+}
+
+function webhookSignatureIsValidForRequest(request: IncomingMessage, dataId: string): boolean {
+  return webhookSignatureIsValid({
+    signature: typeof request.headers["x-signature"] === "string" ? request.headers["x-signature"] : undefined,
+    requestId: typeof request.headers["x-request-id"] === "string" ? request.headers["x-request-id"] : undefined
+  }, dataId, process.env.MERCADOPAGO_WEBHOOK_SECRET);
+}
+
+async function createPixOrder(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  requireWritesEnabled();
+  const body = validatePixInput(await requestBody(request));
+  const idempotencyKey = request.headers["x-idempotency-key"];
+  if (typeof idempotencyKey !== "string" || idempotencyKey.trim().length < 8 || idempotencyKey.length > 128) {
+    json(response, 400, { error: "Envie um header X-Idempotency-Key com pelo menos 8 caracteres." });
+    return;
+  }
+  const payload = createPixOrderPayload(body, idempotencyKey);
+  const requestHash = createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+  const previous = getIdempotentResponse(idempotencyKey, requestHash);
+  if (previous.conflict) { json(response, 409, { error: "A chave de idempotencia ja foi usada com dados diferentes." }); return; }
+  if (previous.response) { json(response, 200, JSON.parse(previous.response)); return; }
+  const order = await mercadoPagoRequest({ method: "POST", path: "/v1/orders", body: payload, idempotencyKey }) as Record<string, any>;
+  if (typeof order.id === "string") saveOrder(order.id, order);
+  const paymentData = extractPixPaymentData(order);
+  const publicPaymentId = randomUUID();
+  savePayment({ publicPaymentId, orderId: paymentData.order_id, paymentId: typeof paymentData.payment_id === "string" ? paymentData.payment_id : undefined, status: paymentStatus(order) });
+  const result = { ...paymentData, public_payment_id: publicPaymentId };
+  saveIdempotentResponse(idempotencyKey, requestHash, JSON.stringify(result));
+  json(response, 201, result);
+}
+
+async function getPaymentStatus(publicPaymentId: string, response: ServerResponse): Promise<void> {
+  const payment = getPayment(publicPaymentId);
+  if (!payment) { json(response, 404, { error: "Pagamento nao encontrado." }); return; }
+  const order = await mercadoPagoRequest({ method: "GET", path: `/v1/orders/${encodeURIComponent(payment.orderId)}` }) as Record<string, any>;
+  const status = paymentStatus(order);
+  updatePaymentStatus(publicPaymentId, status);
+  json(response, 200, publicPaymentStatus(status));
+}
+
+async function receiveWebhook(request: IncomingMessage, response: ServerResponse, url: URL): Promise<void> {
+  const webhook = await requestBody(request);
+  const bodyDataId = typeof webhook.data === "object" && webhook.data !== null && "id" in webhook.data ? String(webhook.data.id) : "";
+  const dataId = url.searchParams.get("data.id") ?? url.searchParams.get("id") ?? bodyDataId;
+  if (!dataId || !webhookSignatureIsValidForRequest(request, dataId)) { json(response, 401, { error: "Webhook nao autorizado." }); return; }
+  const eventKey = `${requestIdFrom(request)}:${dataId}`;
+  if (!saveWebhookEvent(eventKey, dataId)) { json(response, 200, { received: true, duplicate: true }); return; }
+  const payment = findPaymentByExternalId(dataId);
+  if (payment) {
+    const order = await mercadoPagoRequest({ method: "GET", path: `/v1/orders/${encodeURIComponent(payment.orderId)}` }) as Record<string, any>;
+    updatePaymentStatus(payment.publicPaymentId, paymentStatus(order));
+  }
+  json(response, 200, { received: true });
+}
+
+function requestIdFrom(request: IncomingMessage): string {
+  return typeof request.headers["x-request-id"] === "string" ? request.headers["x-request-id"] : "unknown";
+}
+
+const server = createServer(async (request, response) => {
+  try {
+    const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
+    if (request.method === "GET" && url.pathname === "/") { response.writeHead(200, { "content-type": "text/html; charset=utf-8" }); response.end(html); return; }
+    if (request.method === "POST" && url.pathname === "/api/orders/pix") { await createPixOrder(request, response); return; }
+    if (request.method === "GET" && url.pathname.startsWith("/api/payments/") && url.pathname.endsWith("/status")) { await getPaymentStatus(url.pathname.split("/")[3] ?? "", response); return; }
+    if (request.method === "GET" && url.pathname.startsWith("/api/orders/")) { const order = getOrder(url.pathname.split("/").pop() ?? ""); if (!order) { json(response, 404, { error: "Order nao encontrada." }); return; } json(response, 200, order); return; }
+    if (request.method === "POST" && url.pathname === "/webhooks/mercadopago") { await receiveWebhook(request, response, url); return; }
+    json(response, 404, { error: "Rota nao encontrada." });
+  } catch (error) { json(response, 400, { error: error instanceof Error ? error.message : "Erro inesperado." }); }
+});
+
+export function startPixServer(): void {
+  server.listen(port, () => console.log(`Pix sandbox em http://localhost:${port}`));
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  startPixServer();
+}
+</file>
+
+</files>

@@ -1,0 +1,27 @@
+{
+  "name": "mercado-pago-mcp",
+  "version": "0.1.0",
+  "description": "MCP local para consultar a documentacao e as APIs do Mercado Pago no Brasil.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "pix": "node dist/pix-server.js",
+    "pix:dev": "tsx src/pix-server.ts",
+    "test": "node --test --import tsx"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.0",
+    "better-sqlite3": "^13.0.3",
+    "dotenv": "^17.4.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.3.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

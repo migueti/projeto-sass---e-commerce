@@ -1,0 +1,11 @@
+{
+    "chat.mcp.serverSampling": {
+        "Mercado-Pago/.vscode/mcp.json: mercado-pago-brasil": {
+            "allowedModels": [
+                "copilotcli/auto",
+                "copilot/auto",
+                "agent-host-copilotcli:auto"
+            ]
+        }
+    }
+}

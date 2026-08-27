@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireUser } from "@/lib/auth";
+import { requirePaidUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { accountSchema, parseBrazilianCents, parseLocalDate, transactionSchema } from "@/lib/validation";
 
 export async function createAccount(formData: FormData) {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   const result = accountSchema.safeParse(Object.fromEntries(formData));
   if (!result.success) throw new Error(result.error.issues[0]?.message ?? "Confira os dados.");
 
@@ -23,7 +23,7 @@ export async function createAccount(formData: FormData) {
 }
 
 export async function createTransaction(formData: FormData) {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   const result = transactionSchema.safeParse(Object.fromEntries(formData));
   if (!result.success) throw new Error(result.error.issues[0]?.message ?? "Confira os dados.");
 
@@ -57,7 +57,7 @@ export async function createTransaction(formData: FormData) {
 }
 
 export async function deleteTransaction(id: string) {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   if (!id.trim()) throw new Error("Lançamento inválido.");
 
   const transaction = await prisma.transaction.findFirst({
@@ -76,7 +76,7 @@ export async function deleteTransaction(id: string) {
 }
 
 export async function updateTransaction(id: string, formData: FormData) {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   const current = await prisma.transaction.findFirst({
     where: { id, userId: user.id },
     select: { goalId: true },

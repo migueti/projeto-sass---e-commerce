@@ -99,6 +99,10 @@ export default function Home() {
           router.push("/login");
           return Promise.reject(new Error("unauthorized"));
         }
+        if (response.status === 402) {
+          router.push("/assinar");
+          return Promise.reject(new Error("payment-required"));
+        }
         return response.ok
           ? response.json()
           : Promise.reject(new Error("dashboard"));

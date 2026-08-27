@@ -1,11 +1,11 @@
 import Link from "next/link";
 
 import { updateTransaction } from "@/app/actions/transactions";
-import { requireUser } from "@/lib/auth";
+import { requirePaidUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export default async function EditTransactionPage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   const { id } = await params;
   const [transaction, accounts, categories] = await Promise.all([
     prisma.transaction.findFirst({ where: { id, userId: user.id } }),

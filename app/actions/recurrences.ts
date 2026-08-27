@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { requireUser } from "@/lib/auth";
+import { requirePaidUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getNextRecurrenceDate } from "@/lib/recurrence";
 import { parseBrazilianCents, parseLocalDate } from "@/lib/validation";
@@ -24,7 +24,7 @@ const recurrenceSchema = z.object({
 });
 
 export async function createRecurrence(formData: FormData) {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   const result = recurrenceSchema.safeParse(Object.fromEntries(formData));
   if (!result.success)
     throw new Error(result.error.issues[0]?.message ?? "Confira os dados.");
@@ -71,7 +71,7 @@ export async function createRecurrence(formData: FormData) {
 }
 
 export async function processRecurrence(id: string) {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   const recurrence = await prisma.recurringTransaction.findFirst({
     where: { id, userId: user.id, active: true },
   });
@@ -131,7 +131,7 @@ export async function processRecurrence(id: string) {
 }
 
 export async function toggleRecurrence(id: string) {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   const recurrence = await prisma.recurringTransaction.findFirst({ where: { id, userId: user.id } });
   if (!recurrence) throw new Error("Recorrência não encontrada.");
   const updated = await prisma.recurringTransaction.updateMany({
@@ -144,7 +144,7 @@ export async function toggleRecurrence(id: string) {
 }
 
 export async function deleteRecurrence(id: string) {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   const result = await prisma.recurringTransaction.deleteMany({ where: { id, userId: user.id } });
   if (result.count !== 1) throw new Error("Recorrência não encontrada.");
   revalidatePath("/recorrencias");

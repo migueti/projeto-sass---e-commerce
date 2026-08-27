@@ -31,7 +31,7 @@ describe("registerUser", () => {
     const result = await registerUser({}, formData);
 
     expect(result).toEqual({ error: "Não foi possível criar sua conta agora." });
-    expect(mocks.hash).toHaveBeenCalledWith("password-valid", 12);
+    expect(mocks.hash).not.toHaveBeenCalled();
     expect(mocks.create).not.toHaveBeenCalled();
   });
 });

@@ -2,7 +2,7 @@ import { createAccount, createTransaction } from "@/app/actions/transactions";
 import { DeleteTransactionButton } from "@/components/delete-transaction-button";
 import { type Prisma, TransactionType } from "@prisma/client";
 import Link from "next/link";
-import { requireUser } from "@/lib/auth";
+import { requirePaidUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseLocalDate } from "@/lib/validation";
 import { parsePage } from "@/lib/pagination";
@@ -10,7 +10,7 @@ import { parsePage } from "@/lib/pagination";
 const pageSize = 30;
 
 export default async function TransactionsPage({ searchParams }: { searchParams: Promise<{ type?: string; accountId?: string; categoryId?: string; from?: string; to?: string; page?: string }> }) {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   const filters = await searchParams;
   const type: TransactionType | undefined = filters.type === "INCOME" || filters.type === "EXPENSE" ? filters.type : undefined;
   const accountId = filters.accountId || undefined;

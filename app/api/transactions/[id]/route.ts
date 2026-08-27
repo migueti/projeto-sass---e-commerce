@@ -12,6 +12,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 export async function DELETE(_request: Request, context: RouteContext) {
   try {
     const user = await requireUser();
+    if (!user.hasPaid) return NextResponse.json({ error: "Pagamento necessário." }, { status: 402 });
     const { id } = await context.params;
     if (!id?.trim()) return NextResponse.json({ error: "Lançamento inválido." }, { status: 400 });
 

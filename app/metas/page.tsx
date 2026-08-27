@@ -1,5 +1,5 @@
 import { addGoalContribution, createGoal, deleteGoal } from "@/app/actions/goals";
-import { requireUser } from "@/lib/auth";
+import { requirePaidUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const formatCurrency = (cents: number) =>
@@ -8,7 +8,7 @@ const formatCurrency = (cents: number) =>
   );
 
 export default async function GoalsPage() {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   const [goals, accounts] = await Promise.all([
     prisma.financialGoal.findMany({
       where: { userId: user.id },

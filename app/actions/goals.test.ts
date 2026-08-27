@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  requireUser: vi.fn(),
+  requirePaidUser: vi.fn(),
   findFirst: vi.fn(),
   deleteMany: vi.fn(),
   accountFindFirst: vi.fn(),
@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   transactionCreate: vi.fn(),
 }));
 
-vi.mock("@/lib/auth", () => ({ requireUser: mocks.requireUser }));
+vi.mock("@/lib/auth", () => ({ requirePaidUser: mocks.requirePaidUser }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     $transaction: vi.fn(async (callback: (client: unknown) => unknown) =>
@@ -36,7 +36,7 @@ beforeEach(() => {
 
 describe("deleteGoal", () => {
   it("rejects deletion while the goal has contributions", async () => {
-    mocks.requireUser.mockResolvedValue({ id: "user-1" });
+    mocks.requirePaidUser.mockResolvedValue({ id: "user-1", hasPaid: true });
     mocks.findFirst.mockResolvedValue({ _count: { contributions: 1 } });
 
     await expect(deleteGoal("goal-1")).rejects.toThrow(
@@ -48,7 +48,7 @@ describe("deleteGoal", () => {
 
 describe("createGoal", () => {
   it("creates an initial contribution for a linked account", async () => {
-    mocks.requireUser.mockResolvedValue({ id: "user-1" });
+    mocks.requirePaidUser.mockResolvedValue({ id: "user-1", hasPaid: true });
     mocks.accountFindFirst.mockResolvedValue({ id: "account-1" });
     mocks.goalCount.mockResolvedValue(0);
     mocks.goalCreate.mockResolvedValue({ id: "goal-1", name: "Reserva" });
@@ -75,7 +75,7 @@ describe("createGoal", () => {
   });
 
   it("rejects new active goals after reaching the limit", async () => {
-    mocks.requireUser.mockResolvedValue({ id: "user-1" });
+    mocks.requirePaidUser.mockResolvedValue({ id: "user-1", hasPaid: true });
     mocks.goalCount.mockResolvedValue(100);
 
     const formData = new FormData();
