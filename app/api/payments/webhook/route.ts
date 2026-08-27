@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { MPNotFoundError } from "mercadopago";
 import { NextResponse } from "next/server";
 
 import { getMercadoPagoPayment, planPriceCents } from "@/lib/mercado-pago";
@@ -14,7 +15,13 @@ export async function POST(request: Request) {
     if (!webhookSignatureIsValid(request.headers.get("x-signature"), request.headers.get("x-request-id"), dataId))
       return NextResponse.json({ error: "Webhook não autorizado." }, { status: 401 });
 
-    const payment = await getMercadoPagoPayment(dataId);
+    let payment;
+    try {
+      payment = await getMercadoPagoPayment(dataId);
+    } catch (error) {
+      if (error instanceof MPNotFoundError) return NextResponse.json({ received: true });
+      throw error;
+    }
     const userId = userIdFromExternalReference(payment.external_reference);
     const amountCents = Math.round((payment.transaction_amount ?? 0) * 100);
     if (!userId || amountCents !== planPriceCents()) return NextResponse.json({ received: true });
