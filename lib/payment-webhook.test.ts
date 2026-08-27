@@ -13,8 +13,22 @@ describe("payment webhook", () => {
     const manifest = `id:${dataId};request-id:${requestId};ts:${timestamp};`;
     const hash = createHmac("sha256", secret).update(manifest).digest("hex");
 
-    expect(webhookSignatureIsValid(`ts=${timestamp},v1=${hash}`, requestId, dataId, secret)).toBe(true);
+    expect(webhookSignatureIsValid(`ts=${timestamp},v1=${hash}`, requestId, dataId, secret, 1710000000)).toBe(true);
     expect(webhookSignatureIsValid(`ts=${timestamp},v1=${hash}`, requestId, "other", secret)).toBe(false);
+  });
+
+  it("rejects signatures outside the replay protection window", () => {
+    const secret = "webhook-secret";
+    const dataId = "payment-123";
+    const requestId = "request-456";
+    const timestamp = "1710000000";
+    const manifest = `id:${dataId};request-id:${requestId};ts:${timestamp};`;
+    const hash = createHmac("sha256", secret).update(manifest).digest("hex");
+    const signature = `ts=${timestamp},v1=${hash}`;
+
+    expect(webhookSignatureIsValid(signature, requestId, dataId, secret, 1710000300)).toBe(true);
+    expect(webhookSignatureIsValid(signature, requestId, dataId, secret, 1710000301)).toBe(false);
+    expect(webhookSignatureIsValid(signature, requestId, dataId, secret, 1709999699)).toBe(false);
   });
 
   it("extracts only the expected user reference format", () => {

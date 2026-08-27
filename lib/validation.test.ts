@@ -47,6 +47,10 @@ describe("parseBrazilianCents", () => {
     expect(parseBrazilianCents("21.474.836,47")).toBe(2_147_483_647);
     expect(parseBrazilianCents("21.474.836,48")).toBeNull();
   });
+
+  it("rejects excessively long inputs before numeric conversion", () => {
+    expect(parseBrazilianCents("1".repeat(33))).toBeNull();
+  });
 });
 
 describe("form schemas", () => {

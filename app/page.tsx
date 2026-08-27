@@ -72,6 +72,8 @@ export default function Home() {
   const [dashboardRetry, setDashboardRetry] = useState(0);
   const [userName, setUserName] = useState("Sua conta");
   const [sessionReady, setSessionReady] = useState(false);
+  const [profileError, setProfileError] = useState(false);
+  const [profileRetry, setProfileRetry] = useState(0);
   const periodParam =
     period === "Este ano"
       ? "year"
@@ -133,21 +135,22 @@ export default function Home() {
 
     fetch("/api/me", { signal: controller.signal })
       .then((response) => {
-        if (!response.ok) {
+        if (response.status === 401) {
           router.push("/login");
           return Promise.reject(new Error("profile"));
         }
+        if (!response.ok) return Promise.reject(new Error("profile"));
         return response.json();
       })
       .then((profile: { name?: string | null }) => {
         if (active) {
           setUserName(profile.name?.trim() || "Sua conta");
+          setProfileError(false);
         }
       })
       .catch((error: unknown) => {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          return;
-        }
+        if (active && !(error instanceof DOMException && error.name === "AbortError"))
+          setProfileError(true);
       })
       .finally(() => {
         if (active) {
@@ -159,10 +162,14 @@ export default function Home() {
       active = false;
       controller.abort();
     };
-  }, [router]);
+  }, [router, profileRetry]);
 
   if (!sessionReady) {
     return <main className="auth-page"><div className="auth-brand"><span className="brand-mark">✳</span> nuvem<span>.</span></div><p className="heading-copy">Carregando seu espaço financeiro...</p></main>;
+  }
+
+  if (profileError && !dashboard) {
+    return <main className="auth-page"><div className="auth-brand"><span className="brand-mark">✳</span> nuvem<span>.</span></div><p className="form-error">Não foi possível carregar seu perfil.</p><button className="primary-button" onClick={() => { setSessionReady(false); setProfileError(false); setProfileRetry((value) => value + 1); }}>Tentar novamente</button></main>;
   }
 
   if (dashboardLoading && !dashboard) {

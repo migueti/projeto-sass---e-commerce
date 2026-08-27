@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
   const transactionClient = {
@@ -30,6 +30,10 @@ vi.mock("@sentry/nextjs", () => ({ captureException: vi.fn() }));
 import { DELETE } from "@/app/api/transactions/[id]/route";
 
 describe("DELETE /api/transactions/[id]", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("reverts a linked goal contribution before deleting it", async () => {
     mocks.requireUser.mockResolvedValue({ id: "user-1", hasPaid: true });
     mocks.transactionClient.transaction.findFirst.mockResolvedValue({
@@ -55,5 +59,25 @@ describe("DELETE /api/transactions/[id]", () => {
     expect(mocks.transactionClient.transaction.deleteMany).toHaveBeenCalledWith({
       where: { id: "transaction-1", userId: "user-1" },
     });
+  });
+
+  it("does not delete a transaction that is not owned by the user", async () => {
+    mocks.requireUser.mockResolvedValue({ id: "user-1", hasPaid: true });
+    mocks.transactionClient.transaction.findFirst.mockResolvedValue(null);
+
+    const response = await DELETE(new Request("http://localhost"), {
+      params: Promise.resolve({ id: "transaction-from-another-user" }),
+    });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "Lançamento não encontrado." });
+    expect(mocks.transactionClient.transaction.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "transaction-from-another-user",
+        userId: "user-1",
+      },
+      select: { cents: true, goalId: true },
+    });
+    expect(mocks.transactionClient.transaction.deleteMany).not.toHaveBeenCalled();
   });
 });

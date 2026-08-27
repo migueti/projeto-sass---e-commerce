@@ -1,0 +1,1 @@
+etapas - Analise e faça melhorias em código ruim e boas praticas de engenharia de  código e usa ativamente os mcps , não trabelhe sozinho sem auxilio dos mcps, pois implementei para que todos trabelhe junto | utilize mcp context7 , sequential thinking , obsidian

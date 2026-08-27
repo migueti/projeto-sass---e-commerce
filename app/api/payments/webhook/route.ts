@@ -27,6 +27,12 @@ export async function POST(request: Request) {
     if (!userId || amountCents !== priceFromExternalReference(payment.external_reference)) return NextResponse.json({ received: true });
 
     await prisma.$transaction(async (transaction) => {
+      const existingPayment = await transaction.payment.findUnique({
+        where: { providerPaymentId: String(payment.id) },
+        select: { status: true },
+      });
+      if (existingPayment?.status === "APPROVED") return;
+
       await transaction.payment.upsert({
         where: { providerPaymentId: String(payment.id) },
         create: {
