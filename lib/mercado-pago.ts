@@ -16,29 +16,38 @@ export function planPriceCents() {
     : PLAN_PRICE_CENTS;
 }
 
+export function buildCheckoutPreferenceBody(
+  email: string,
+  baseUrl: string,
+  externalReference: string,
+) {
+  return {
+    items: [{
+      id: "nuvem-access",
+      title: "Acesso ao nuvem.",
+      description: "Acesso digital ao sistema de controle financeiro pessoal nuvem.",
+      quantity: 1,
+      currency_id: "BRL",
+      unit_price: planPriceCents() / 100,
+    }],
+    payer: { email },
+    external_reference: externalReference,
+    notification_url: `${baseUrl}/api/payments/webhook`,
+    back_urls: {
+      success: `${baseUrl}/assinar?status=success`,
+      failure: `${baseUrl}/assinar?status=failure`,
+      pending: `${baseUrl}/assinar?status=pending`,
+    },
+    auto_return: "approved" as const,
+  };
+}
+
 export async function createCheckoutPreference(userId: string, email: string) {
   const baseUrl = process.env.NEXTAUTH_URL;
   if (!baseUrl) throw new Error("MERCADOPAGO_NOT_CONFIGURED");
   const externalReference = `nuvem:user:${userId}:${randomUUID()}`;
   const response = await new Preference(client()).create({
-    body: {
-      items: [{
-        id: "nuvem-access",
-        title: "Acesso ao nuvem.",
-        quantity: 1,
-        currency_id: "BRL",
-        unit_price: planPriceCents() / 100,
-      }],
-      payer: { email },
-      external_reference: externalReference,
-      notification_url: `${baseUrl}/api/payments/webhook`,
-      back_urls: {
-        success: `${baseUrl}/assinar?status=success`,
-        failure: `${baseUrl}/assinar?status=failure`,
-        pending: `${baseUrl}/assinar?status=pending`,
-      },
-      auto_return: "approved",
-    },
+    body: buildCheckoutPreferenceBody(email, baseUrl, externalReference),
   });
 
   const checkoutUrl = process.env.MERCADOPAGO_USE_SANDBOX === "true"
