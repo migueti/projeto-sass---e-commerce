@@ -1,0 +1,22 @@
+{
+	"servers": {
+		"mercado-pago-brasil": {
+			"type": "stdio",
+			"command": "node",
+			"args": ["${workspaceFolder}/dist/index.js"],
+			"cwd": "${workspaceFolder}",
+			"env": {
+				"MERCADOPAGO_ACCESS_TOKEN": "${input:mercadopagoAccessToken}",
+				"MERCADOPAGO_READ_ONLY": "true"
+			}
+		}
+	},
+	"inputs": [
+		{
+			"type": "promptString",
+			"id": "mercadopagoAccessToken",
+			"description": "Access Token de teste do Mercado Pago",
+			"password": true
+		}
+	]
+}

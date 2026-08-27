@@ -31,6 +31,7 @@ model User {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
+  hasPaid       Boolean               @default(false)
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
   accounts      Account[]
@@ -40,6 +41,27 @@ model User {
   transactions  Transaction[]
   recurrences   RecurringTransaction[]
   goals         FinancialGoal[]
+  payments      Payment[]
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  userId            String
+  providerPaymentId String        @unique
+  externalReference String        @unique
+  amountCents       Int
+  status            PaymentStatus @default(PENDING)
+  approvedAt        DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, status])
 }
 
 model Account {

@@ -1,5 +1,5 @@
 import { createAccount } from "@/app/actions/transactions";
-import { requireUser } from "@/lib/auth";
+import { requirePaidUser } from "@/lib/auth";
 import { summarizeAccountTransactions } from "@/lib/accounts";
 import { prisma } from "@/lib/prisma";
 
@@ -14,7 +14,7 @@ const labels: Record<string, string> = {
 };
 
 export default async function AccountsPage() {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   const accounts = await prisma.financialAccount.findMany({
     where: { userId: user.id },
     select: { id: true, name: true, type: true, initialCents: true },

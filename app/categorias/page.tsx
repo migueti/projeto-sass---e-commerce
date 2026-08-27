@@ -1,9 +1,9 @@
 import { createCategory, deleteCategory } from "@/app/actions/categories";
-import { requireUser } from "@/lib/auth";
+import { requirePaidUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export default async function CategoriesPage() {
-  const user = await requireUser();
+  const user = await requirePaidUser();
   const categories = await prisma.category.findMany({
     where: { userId: user.id },
     include: { _count: { select: { transactions: true } } },

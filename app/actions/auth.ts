@@ -21,9 +21,9 @@ export async function registerUser(_state: { error?: string; success?: boolean }
   if (!consumeRegistrationAttempt(parsed.data.email))
     return { error: "Muitas tentativas de cadastro. Tente novamente mais tarde." };
 
-  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
   const existingUser = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (existingUser) return { error: "Não foi possível criar sua conta agora." };
+  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
 
   try {
     await prisma.user.create({

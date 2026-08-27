@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     const user = await requireUser();
+    if (!user.hasPaid) return NextResponse.json({ error: "Pagamento necessário." }, { status: 402 });
     const filters = parseDashboardFilters(new URL(request.url).searchParams);
     return NextResponse.json(await getDashboard(user.id, filters));
   } catch (error) {

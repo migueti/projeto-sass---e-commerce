@@ -1,0 +1,43 @@
+"use client";
+
+import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+export default function SubscribePage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function startCheckout() {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/payments/checkout", { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Não foi possível iniciar o pagamento.");
+      if (data.alreadyPaid) router.push("/");
+      else window.location.assign(data.checkoutUrl);
+    } catch (checkoutError) {
+      setError(checkoutError instanceof Error ? checkoutError.message : "Não foi possível iniciar o pagamento.");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="auth-page">
+      <div className="auth-brand"><span className="brand-mark">✳</span> nuvem<span>.</span></div>
+      <section className="auth-card">
+        <p className="eyebrow">ACESSO AO NUVEM.</p>
+        <h1>Seu espaço financeiro está pronto.</h1>
+        <p className="auth-copy">Confirme o pagamento único para liberar dashboard, contas, lançamentos, metas e automações.</p>
+        <div className="panel-header"><strong>Plano completo</strong><strong>R$ 29,90</strong></div>
+        {error && <p className="form-error">{error}</p>}
+        <button className="primary-button auth-submit" type="button" onClick={startCheckout} disabled={loading}>
+          {loading ? "Abrindo checkout..." : "Pagar com Mercado Pago"}
+        </button>
+        <button className="text-button" type="button" onClick={() => signOut({ callbackUrl: "/login" })}>Sair da conta</button>
+      </section>
+    </main>
+  );
+}

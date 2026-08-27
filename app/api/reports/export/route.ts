@@ -48,6 +48,7 @@ async function createPdf(rows: Array<{ description: string; type: string; cents:
 export async function GET(request: Request) {
   try {
     const user = await requireUser();
+    if (!user.hasPaid) return NextResponse.json({ error: "Pagamento necessário." }, { status: 402 });
     const params = new URL(request.url).searchParams;
     const format = params.get("format") ?? "xlsx";
     if (format !== "pdf" && format !== "xlsx") {

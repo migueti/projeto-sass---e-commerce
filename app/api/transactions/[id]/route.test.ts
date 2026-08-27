@@ -31,7 +31,7 @@ import { DELETE } from "@/app/api/transactions/[id]/route";
 
 describe("DELETE /api/transactions/[id]", () => {
   it("reverts a linked goal contribution before deleting it", async () => {
-    mocks.requireUser.mockResolvedValue({ id: "user-1" });
+    mocks.requireUser.mockResolvedValue({ id: "user-1", hasPaid: true });
     mocks.transactionClient.transaction.findFirst.mockResolvedValue({
       cents: 10_000,
       goalId: "goal-1",
