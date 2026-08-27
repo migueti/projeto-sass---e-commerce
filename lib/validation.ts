@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 export const accountSchema = z.object({
-  name: z.string().trim().min(2, "Informe o nome da conta."),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Informe o nome da conta.")
+    .max(80, "Use no máximo 80 caracteres no nome da conta."),
   type: z.enum(["checking", "savings", "cash"], {
     message: "Informe um tipo de conta válido.",
   }),
@@ -9,7 +13,11 @@ export const accountSchema = z.object({
 });
 
 export const transactionSchema = z.object({
-  description: z.string().trim().min(2, "Informe uma descrição."),
+  description: z
+    .string()
+    .trim()
+    .min(2, "Informe uma descrição.")
+    .max(120, "Use no máximo 120 caracteres na descrição."),
   amount: z.string().trim().min(1, "Informe um valor."),
   type: z.enum(["INCOME", "EXPENSE"]),
   accountId: z.string().min(1, "Selecione uma conta."),
@@ -22,16 +30,21 @@ export const transactionSchema = z.object({
     .optional(),
 });
 
-export function parseBrazilianCents(value: string) {
+export function parseBrazilianCents(
+  value: string,
+  options: { allowZero?: boolean } = {},
+) {
+  const { allowZero = false } = options;
   const raw = value.trim().replace(/^r\$\s?/i, "");
   if (!raw) return null;
 
-  const match = /^(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,3}))?$/.exec(raw);
+  const match = /^(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,2}))?$/.exec(raw);
   if (!match) return null;
 
   const normalized = `${match[1].replace(/\./g, "")}.${match[2] ?? "0"}`;
   const amount = Number(normalized);
-  if (!Number.isFinite(amount) || amount <= 0) return null;
+  if (!Number.isFinite(amount) || amount < 0 || (!allowZero && amount === 0))
+    return null;
 
   const cents = Math.round(amount * 100);
   return cents <= 2_147_483_647 ? cents : null;
@@ -42,12 +55,12 @@ export function parseLocalDate(value: string) {
   if (!match) return null;
 
   const [, year, month, day] = match;
-  const date = new Date(`${value}T12:00:00`);
+  const date = new Date(`${value}T12:00:00.000Z`);
   if (
     Number.isNaN(date.getTime()) ||
-    date.getFullYear() !== Number(year) ||
-    date.getMonth() !== Number(month) - 1 ||
-    date.getDate() !== Number(day)
+    date.getUTCFullYear() !== Number(year) ||
+    date.getUTCMonth() !== Number(month) - 1 ||
+    date.getUTCDate() !== Number(day)
   ) {
     return null;
   }

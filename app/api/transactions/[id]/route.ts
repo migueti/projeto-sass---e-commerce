@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/auth";
@@ -22,6 +23,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
+    Sentry.captureException(error);
     return NextResponse.json({ error: "Não foi possível excluir o lançamento." }, { status: 500 });
   }
 }

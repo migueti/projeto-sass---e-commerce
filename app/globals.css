@@ -305,6 +305,10 @@ button { cursor: pointer; }
 .auth-card label { display: grid; gap: 7px; color: #596159; font-size: 12px; font-weight: 600; }
 .auth-card input { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 6px; outline: 0; color: var(--ink); background: #fcfdfb; }
 .auth-card input:focus { border-color: #5d8e63; box-shadow: 0 0 0 3px #5d8e6318; }
+.error-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at top, #eef5e9, var(--bg) 58%); }
+.error-content { width: min(100%, 460px); padding: 42px; border: 1px solid var(--line); border-radius: 10px; background: #fff; box-shadow: 0 18px 50px #3441350d; text-align: center; }
+.error-content h1 { margin: 10px 0 8px; color: var(--ink); font-size: 26px; }
+.error-content > p:not(.eyebrow) { margin: 0 0 24px; color: #7d857d; font-size: 13px; }
 .auth-submit { width: 100%; margin-top: 4px; }
 .auth-footer { margin: 24px 0 0; color: var(--muted); text-align: center; font-size: 12px; }
 .auth-footer a { color: var(--green); font-weight: 700; text-decoration: none; }
@@ -359,7 +363,7 @@ button { cursor: pointer; }
 .expense-bar { background: var(--coral); opacity: 0.7; }
 .x-labels { position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; color: #b3b8b1; font-size: 9px; }
 .donut-wrap { display: flex; align-items: center; gap: 27px; margin: 25px 6px 6px; }
-.donut { width: 136px; height: 136px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; background: conic-gradient(var(--green) 0 56.4%, var(--coral) 56.4% 74.6%, #b8a6ce 74.6% 88.7%, #e0c98f 88.7%); }
+.donut { width: 136px; height: 136px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; }
 .donut::before { content: ""; position: absolute; width: 88px; height: 88px; background: #fff; border-radius: 50%; }
 .donut div { z-index: 1; text-align: center; }
 .donut strong, .donut span { display: block; }
@@ -430,5 +434,6 @@ button { cursor: pointer; }
 @media(max-width: 480px) {
   .page-heading h1 { font-size: 24px; }
   .auth-card { padding: 24px; }
+  .error-content { padding: 30px 22px; }
   .crud-form { gap: 12px; }
 }

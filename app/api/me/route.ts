@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/auth";
@@ -19,6 +20,7 @@ export async function GET() {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
 
+    Sentry.captureException(error);
     return NextResponse.json({ error: "Não foi possível carregar o perfil." }, { status: 500 });
   }
 }

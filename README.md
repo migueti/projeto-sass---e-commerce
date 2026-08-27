@@ -54,6 +54,23 @@ Aplicativo de controle financeiro pessoal em português. Permite acompanhar cont
 
 Abra [http://localhost:3000](http://localhost:3000).
 
+Se a porta `3000` já estiver em uso, inicie o Next.js em outra porta:
+
+```bash
+PORT=3001 npm run dev
+```
+
+O Next.js tenta escolher a próxima porta disponível quando nenhuma porta é
+definida explicitamente. Ao definir `PORT` ou usar `-p`, a porta informada precisa
+estar livre.
+
+Se aparecer `Another next dev server is already running`, reutilize a URL e o
+servidor indicados na mensagem. Para reiniciar, encerre somente o PID exibido:
+
+```bash
+kill <PID>
+```
+
 ## Variáveis de ambiente
 
 | Variável | Descrição | Exemplo |
@@ -61,8 +78,24 @@ Abra [http://localhost:3000](http://localhost:3000).
 | `DATABASE_URL` | Caminho da base SQLite | `file:./dev.db` |
 | `NEXTAUTH_SECRET` | Segredo usado para assinar a sessão | valor aleatório longo |
 | `NEXTAUTH_URL` | URL pública da aplicação | `http://localhost:3000` |
+| `SERVER_ACTION_ALLOWED_ORIGINS` | Hostnames adicionais aceitos por Server Actions atrás de proxy, separados por vírgula | `app.example.com,preview.example.com` |
+| `SENTRY_DSN` | DSN do Sentry para servidor e Edge | valor fornecido pelo Sentry |
+| `NEXT_PUBLIC_SENTRY_DSN` | DSN público do Sentry para o navegador | valor fornecido pelo Sentry |
 
 Não versione `.env` nem o banco local. Use `.env.example` como referência.
+
+## MCP do Obsidian
+
+O workspace já inclui o servidor `obsidian` em `.vscode/mcp.json`. Para ativá-lo:
+
+1. Instale e ative o plugin Obsidian MCP Server no Obsidian.
+2. Confirme a porta configurada, normalmente `27123`.
+3. Ao iniciar o servidor MCP no VS Code, informe o token pelo prompt protegido.
+4. Recarregue os servidores MCP para conectar em `http://localhost:27123/mcp`.
+
+O token não deve ser salvo no repositório nem enviado pelo chat. Se a autenticação
+estiver desativada no plugin para desenvolvimento local, remova o header
+`Authorization` da configuração do servidor.
 
 ## Comandos
 

@@ -9,7 +9,11 @@ import { getNextRecurrenceDate } from "@/lib/recurrence";
 import { parseBrazilianCents, parseLocalDate } from "@/lib/validation";
 
 const recurrenceSchema = z.object({
-  description: z.string().trim().min(2, "Informe uma descrição."),
+  description: z
+    .string()
+    .trim()
+    .min(2, "Informe uma descrição.")
+    .max(120, "Use no máximo 120 caracteres na descrição."),
   amount: z.string().min(1, "Informe um valor."),
   type: z.enum(["INCOME", "EXPENSE"]),
   frequency: z.enum(["WEEKLY", "MONTHLY", "YEARLY"]),
@@ -34,7 +38,7 @@ export async function createRecurrence(formData: FormData) {
   if (result.data.endAt && !endAt)
     throw new Error("Informe uma data final válida.");
   if (endAt && endAt < nextOccurrence)
-    throw new Error("A data final deve ser posterior à próxima ocorrência.");
+    throw new Error("A data final deve ser posterior ou igual à próxima ocorrência.");
 
   const account = await prisma.financialAccount.findFirst({
     where: { id: result.data.accountId, userId: user.id },
@@ -56,6 +60,8 @@ export async function createRecurrence(formData: FormData) {
       cents,
       type: result.data.type,
       frequency: result.data.frequency,
+      dayOfMonth:
+        result.data.frequency === "WEEKLY" ? null : nextOccurrence.getUTCDate(),
       nextOccurrence,
       endAt,
     },
@@ -82,7 +88,11 @@ export async function processRecurrence(id: string) {
     occurrences.push(nextOccurrence);
     if (occurrences.length > 1_200)
       throw new Error("Há muitas ocorrências pendentes para processar de uma vez.");
-    nextOccurrence = getNextRecurrenceDate(nextOccurrence, recurrence.frequency);
+    nextOccurrence = getNextRecurrenceDate(
+      nextOccurrence,
+      recurrence.frequency,
+      recurrence.dayOfMonth ?? undefined,
+    );
   }
   const shouldFinish = Boolean(
     recurrence.endAt && nextOccurrence > recurrence.endAt,
@@ -124,7 +134,11 @@ export async function toggleRecurrence(id: string) {
   const user = await requireUser();
   const recurrence = await prisma.recurringTransaction.findFirst({ where: { id, userId: user.id } });
   if (!recurrence) throw new Error("Recorrência não encontrada.");
-  await prisma.recurringTransaction.updateMany({ where: { id, userId: user.id }, data: { active: !recurrence.active } });
+  const updated = await prisma.recurringTransaction.updateMany({
+    where: { id, userId: user.id, active: recurrence.active },
+    data: { active: !recurrence.active },
+  });
+  if (updated.count !== 1) throw new Error("A recorrência foi alterada. Atualize a página e tente novamente.");
   revalidatePath("/recorrencias");
   revalidatePath("/");
 }

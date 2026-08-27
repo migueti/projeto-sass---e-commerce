@@ -8,7 +8,11 @@ import { prisma } from "@/lib/prisma";
 import { parseBrazilianCents, parseLocalDate } from "@/lib/validation";
 
 const goalSchema = z.object({
-  name: z.string().trim().min(2, "Informe o nome da meta."),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Informe o nome da meta.")
+    .max(100, "Use no máximo 100 caracteres no nome da meta."),
   target: z.string().min(1, "Informe o valor alvo."),
   saved: z.string().optional(),
   deadline: z.string().optional(),
@@ -82,21 +86,38 @@ export async function addGoalContribution(id: string, formData: FormData) {
   await prisma.$transaction(async (transaction) => {
     const goal = await transaction.financialGoal.findFirst({
       where: { id, userId: user.id },
-      select: { savedCents: true, targetCents: true },
+      select: { savedCents: true, targetCents: true, accountId: true, name: true },
     });
     if (!goal) throw new Error("Meta não encontrada.");
     const savedCents = goal.savedCents + cents;
     if (savedCents > goal.targetCents)
       throw new Error("O aporte não pode superar o valor alvo.");
 
-    await transaction.financialGoal.update({
-      where: { id },
+    const updated = await transaction.financialGoal.updateMany({
+      where: { id, userId: user.id, savedCents: goal.savedCents },
       data: {
         savedCents,
         status: savedCents === goal.targetCents ? "COMPLETED" : "ACTIVE",
       },
     });
+    if (updated.count !== 1)
+      throw new Error("A meta foi alterada por outro aporte. Tente novamente.");
+
+    if (goal.accountId) {
+      await transaction.transaction.create({
+        data: {
+          userId: user.id,
+          accountId: goal.accountId,
+          type: "EXPENSE",
+          description: `Aporte para meta: ${goal.name}`,
+          cents,
+          occurredAt: new Date(),
+        },
+      });
+    }
   });
   revalidatePath("/metas");
   revalidatePath("/");
+  revalidatePath("/contas");
+  revalidatePath("/lancamentos");
 }

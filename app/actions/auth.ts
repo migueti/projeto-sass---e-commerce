@@ -2,6 +2,7 @@
 
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
@@ -39,6 +40,7 @@ export async function registerUser(_state: { error?: string; success?: boolean }
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")
       return { error: "Este e-mail já está cadastrado." };
+    Sentry.captureException(error);
     return { error: "Não foi possível criar sua conta agora." };
   }
 

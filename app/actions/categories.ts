@@ -2,13 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
+import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const categorySchema = z.object({
-  name: z.string().trim().min(2, "Informe o nome da categoria."),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Informe o nome da categoria.")
+    .max(50, "Use no máximo 50 caracteres no nome da categoria."),
   color: z.string().regex(/^#[0-9a-f]{6}$/i, "Escolha uma cor válida."),
 });
 
@@ -28,6 +33,7 @@ export async function createCategory(formData: FormData) {
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")
       throw new Error("Você já possui uma categoria com esse nome.");
+    Sentry.captureException(error);
     throw error;
   }
   revalidatePath("/categorias");

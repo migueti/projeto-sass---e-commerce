@@ -20,8 +20,8 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
   const fromDate = from ? parseLocalDate(from) : null;
   const toExclusive = to ? parseLocalDate(to) : null;
   if (toExclusive) {
-    toExclusive.setDate(toExclusive.getDate() + 1);
-    toExclusive.setHours(0, 0, 0, 0);
+    toExclusive.setUTCDate(toExclusive.getUTCDate() + 1);
+    toExclusive.setUTCHours(0, 0, 0, 0);
   }
   const dateFilter = fromDate || toExclusive ? { occurredAt: { ...(fromDate ? { gte: fromDate } : {}), ...(toExclusive ? { lt: toExclusive } : {}) } } : {};
   const transactionFilters: Prisma.TransactionWhereInput = {

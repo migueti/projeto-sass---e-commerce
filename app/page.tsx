@@ -90,9 +90,10 @@ export default function Home() {
           .toUpperCase();
 
   useEffect(() => {
+    const controller = new AbortController();
     let active = true;
 
-    fetch(`/api/dashboard?period=${periodParam}`)
+    fetch(`/api/dashboard?period=${periodParam}`, { signal: controller.signal })
       .then((response) => {
         if (response.status === 401 || response.redirected) {
           router.push("/login");
@@ -107,8 +108,10 @@ export default function Home() {
         setDashboard(data);
         setDashboardError(false);
       })
-      .catch(() => {
-        if (active) setDashboardError(true);
+      .catch((error: unknown) => {
+        if (active && !(error instanceof DOMException && error.name === "AbortError")) {
+          setDashboardError(true);
+        }
       })
       .finally(() => {
         if (active) setDashboardLoading(false);
@@ -116,11 +119,15 @@ export default function Home() {
 
     return () => {
       active = false;
+      controller.abort();
     };
   }, [periodParam, router, dashboardRetry]);
 
   useEffect(() => {
-    fetch("/api/me")
+    const controller = new AbortController();
+    let active = true;
+
+    fetch("/api/me", { signal: controller.signal })
       .then((response) => {
         if (!response.ok) {
           router.push("/login");
@@ -128,11 +135,26 @@ export default function Home() {
         }
         return response.json();
       })
-      .then((profile: { name?: string | null }) =>
-        setUserName(profile.name?.trim() || "Sua conta"),
-      )
-      .catch(() => undefined)
-      .finally(() => setSessionReady(true));
+      .then((profile: { name?: string | null }) => {
+        if (active) {
+          setUserName(profile.name?.trim() || "Sua conta");
+        }
+      })
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          return;
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setSessionReady(true);
+        }
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [router]);
 
   if (!sessionReady) {
@@ -291,7 +313,11 @@ export default function Home() {
                 <span>Período</span>
                 <select
                   value={period}
-                  onChange={(event) => setPeriod(event.target.value)}
+                  onChange={(event) => {
+                    setDashboardLoading(true);
+                    setDashboardError(false);
+                    setPeriod(event.target.value);
+                  }}
                 >
                   <option>Este mês</option>
                   <option>Últimos 30 dias</option>
@@ -482,6 +508,17 @@ function CategoryBreakdown({
 }: {
   categories: DashboardData["categories"];
 }) {
+  let stop = 0;
+  const donutBackground = categories.length
+    ? `conic-gradient(${categories
+        .map((category) => {
+          const start = stop;
+          stop += category.percent;
+          return `${category.color ?? "#b8a6ce"} ${start}% ${stop}%`;
+        })
+        .join(", ")})`
+    : "#eef0ec";
+
   return (
     <section className="panel category-panel">
       <div className="panel-header">
@@ -492,7 +529,7 @@ function CategoryBreakdown({
         <button className="dots" type="button" aria-label="Mais opções de categorias">•••</button>
       </div>
       <div className="donut-wrap">
-        <div className="donut">
+        <div className="donut" style={{ background: donutBackground }}>
           <div>
             <strong>
               {formatCurrency(
@@ -504,10 +541,10 @@ function CategoryBreakdown({
         </div>
         <div className="category-list">
           {categories.length ? (
-            categories.slice(0, 4).map((category, index) => (
+            categories.slice(0, 4).map((category) => (
               <span key={category.id ?? "uncategorized"}>
                 <i
-                  className={`cat-${["home", "food", "life", "other"][index]}`}
+                  style={{ backgroundColor: category.color ?? "#b8a6ce" }}
                 />
                 {category.name} <b>{category.percent}%</b>
               </span>

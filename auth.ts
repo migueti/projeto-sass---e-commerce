@@ -9,6 +9,16 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
+  callbacks: {
+    jwt({ token, user }) {
+      token.id = user?.id ?? token.id ?? token.sub;
+      return token;
+    },
+    session({ session, token }) {
+      if (token.id) session.user.id = token.id;
+      return session;
+    },
+  },
   providers: [
     CredentialsProvider({
       name: "Credenciais",

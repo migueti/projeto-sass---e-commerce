@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
 import { NextResponse } from "next/server";
@@ -11,6 +12,10 @@ export const dynamic = "force-dynamic";
 
 function money(cents: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
+}
+
+function spreadsheetText(value: string) {
+  return /^[\t\r\n ]*[=+\-@]/.test(value) ? `'${value}` : value;
 }
 
 async function createPdf(rows: Array<{ description: string; type: string; cents: number; occurredAt: Date; account: { name: string }; category: { name: string } | null }>, title: string) {
@@ -39,6 +44,10 @@ export async function GET(request: Request) {
   try {
     const user = await requireUser();
     const params = new URL(request.url).searchParams;
+    const format = params.get("format") ?? "xlsx";
+    if (format !== "pdf" && format !== "xlsx") {
+      return NextResponse.json({ error: "Formato inválido." }, { status: 400 });
+    }
     const filters = parseDashboardFilters(params);
     const { start, end } = getDashboardDateRange(filters.period);
     const rows = await prisma.transaction.findMany({
@@ -46,19 +55,16 @@ export async function GET(request: Request) {
       include: { account: { select: { name: true } }, category: { select: { name: true } } },
       orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
     });
-    const format = params.get("format") ?? "xlsx";
     const title = `Lançamentos · ${filters.period === "year" ? "Este ano" : filters.period === "30days" ? "Últimos 30 dias" : "Este mês"}`;
 
     if (format === "pdf") {
       const buffer = await createPdf(rows, title);
       return new Response(new Uint8Array(buffer), { headers: { "Content-Type": "application/pdf", "Content-Disposition": 'attachment; filename="nuvem-lancamentos.pdf"' } });
     }
-    if (format !== "xlsx") return NextResponse.json({ error: "Formato inválido." }, { status: 400 });
-
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Lançamentos");
     sheet.columns = [{ header: "Descrição", key: "description", width: 32 }, { header: "Tipo", key: "type", width: 14 }, { header: "Valor", key: "amount", width: 18 }, { header: "Data", key: "date", width: 16 }, { header: "Conta", key: "account", width: 22 }, { header: "Categoria", key: "category", width: 20 }];
-    rows.forEach((row) => sheet.addRow({ description: row.description, type: row.type === "INCOME" ? "Receita" : "Despesa", amount: row.cents / 100, date: row.occurredAt, account: row.account.name, category: row.category?.name ?? "Sem categoria" }));
+    rows.forEach((row) => sheet.addRow({ description: spreadsheetText(row.description), type: row.type === "INCOME" ? "Receita" : "Despesa", amount: row.cents / 100, date: row.occurredAt, account: spreadsheetText(row.account.name), category: spreadsheetText(row.category?.name ?? "Sem categoria") }));
     sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
     sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF5D8E63" } };
     sheet.getColumn("amount").numFmt = 'R$ #,##0.00';
@@ -68,6 +74,7 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     if (error instanceof Error && error.message === "INVALID_PERIOD") return NextResponse.json({ error: "Período inválido." }, { status: 400 });
+    Sentry.captureException(error);
     return NextResponse.json({ error: "Não foi possível gerar a exportação." }, { status: 500 });
   }
 }
