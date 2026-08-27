@@ -1,12 +1,19 @@
 {
-	"servers": {
-		"playwright": {
-			"command": "npx",
-			"args": [
-				"@playwright/mcp@latest"
-			],
-			"type": "stdio"
+	"inputs": [
+		{
+			"id": "SENTRY_ACCESS_TOKEN",
+			"type": "promptString",
+			"description": "Your Sentry user authentication token",
+			"password": true
 		},
+		{
+			"id": "OBSIDIAN_MCP_TOKEN",
+			"type": "promptString",
+			"description": "Token de autenticação do Obsidian MCP Server",
+			"password": true
+		}
+	],
+	"servers": {
 		"sequential-thinking": {
 			"command": "npx",
 			"args": [
@@ -22,31 +29,9 @@
 				"Authorization": "Bearer ${input:OBSIDIAN_MCP_TOKEN}"
 			}
 		},
-		"io.github.getsentry/sentry-mcp": {
-			"type": "stdio",
-			"command": "npx",
-			"args": [
-				"@sentry/mcp-server@0.25.0"
-			],
-			"env": {
-				"SENTRY_ACCESS_TOKEN": "${input:SENTRY_ACCESS_TOKEN}"
-			},
-			"gallery": "https://api.mcp.github.com",
-			"version": "0.25.0"
+		"context7": {
+			"type": "http",
+			"url": "https://mcp.context7.com/mcp"
 		}
-	},
-	"inputs": [
-		{
-			"id": "SENTRY_ACCESS_TOKEN",
-			"type": "promptString",
-			"description": "Your Sentry user authentication token",
-			"password": true
-		},
-		{
-			"id": "OBSIDIAN_MCP_TOKEN",
-			"type": "promptString",
-			"description": "Token de autenticação do Obsidian MCP Server",
-			"password": true
-		}
-	]
+	}
 }

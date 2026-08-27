@@ -8,7 +8,11 @@ import { prisma } from "@/lib/prisma";
 import { parseBrazilianCents, parseLocalDate } from "@/lib/validation";
 
 const goalSchema = z.object({
-  name: z.string().trim().min(2, "Informe o nome da meta."),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Informe o nome da meta.")
+    .max(100, "Use no máximo 100 caracteres no nome da meta."),
   target: z.string().min(1, "Informe o valor alvo."),
   saved: z.string().optional(),
   deadline: z.string().optional(),
@@ -114,4 +118,6 @@ export async function addGoalContribution(id: string, formData: FormData) {
   });
   revalidatePath("/metas");
   revalidatePath("/");
+  revalidatePath("/contas");
+  revalidatePath("/lancamentos");
 }

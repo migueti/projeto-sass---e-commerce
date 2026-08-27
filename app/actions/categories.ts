@@ -9,7 +9,11 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const categorySchema = z.object({
-  name: z.string().trim().min(2, "Informe o nome da categoria."),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Informe o nome da categoria.")
+    .max(50, "Use no máximo 50 caracteres no nome da categoria."),
   color: z.string().regex(/^#[0-9a-f]{6}$/i, "Escolha uma cor válida."),
 });
 

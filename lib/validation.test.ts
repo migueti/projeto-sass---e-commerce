@@ -37,6 +37,11 @@ describe("parseBrazilianCents", () => {
     expect(parseBrazilianCents("-12,50")).toBeNull();
   });
 
+  it("allows zero only when explicitly requested", () => {
+    expect(parseBrazilianCents("0")).toBeNull();
+    expect(parseBrazilianCents("0", { allowZero: true })).toBe(0);
+  });
+
   it("rejects amounts outside the database integer range", () => {
     expect(parseBrazilianCents("21.474.836,47")).toBe(2_147_483_647);
     expect(parseBrazilianCents("21.474.836,48")).toBeNull();
@@ -52,6 +57,14 @@ describe("form schemas", () => {
         initialAmount: "",
       }),
     ).toMatchObject({ name: "Conta principal" });
+
+    expect(
+      accountSchema.safeParse({
+        name: "a".repeat(81),
+        type: "checking",
+        initialAmount: "0",
+      }).success,
+    ).toBe(false);
 
     expect(
       accountSchema.safeParse({

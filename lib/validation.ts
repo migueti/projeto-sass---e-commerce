@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 export const accountSchema = z.object({
-  name: z.string().trim().min(2, "Informe o nome da conta."),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Informe o nome da conta.")
+    .max(80, "Use no máximo 80 caracteres no nome da conta."),
   type: z.enum(["checking", "savings", "cash"], {
     message: "Informe um tipo de conta válido.",
   }),
@@ -9,7 +13,11 @@ export const accountSchema = z.object({
 });
 
 export const transactionSchema = z.object({
-  description: z.string().trim().min(2, "Informe uma descrição."),
+  description: z
+    .string()
+    .trim()
+    .min(2, "Informe uma descrição.")
+    .max(120, "Use no máximo 120 caracteres na descrição."),
   amount: z.string().trim().min(1, "Informe um valor."),
   type: z.enum(["INCOME", "EXPENSE"]),
   accountId: z.string().min(1, "Selecione uma conta."),
@@ -22,7 +30,11 @@ export const transactionSchema = z.object({
     .optional(),
 });
 
-export function parseBrazilianCents(value: string) {
+export function parseBrazilianCents(
+  value: string,
+  options: { allowZero?: boolean } = {},
+) {
+  const { allowZero = false } = options;
   const raw = value.trim().replace(/^r\$\s?/i, "");
   if (!raw) return null;
 
@@ -31,7 +43,8 @@ export function parseBrazilianCents(value: string) {
 
   const normalized = `${match[1].replace(/\./g, "")}.${match[2] ?? "0"}`;
   const amount = Number(normalized);
-  if (!Number.isFinite(amount) || amount <= 0) return null;
+  if (!Number.isFinite(amount) || amount < 0 || (!allowZero && amount === 0))
+    return null;
 
   const cents = Math.round(amount * 100);
   return cents <= 2_147_483_647 ? cents : null;

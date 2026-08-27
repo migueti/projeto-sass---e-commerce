@@ -12,7 +12,9 @@ export async function createAccount(formData: FormData) {
   if (!result.success) throw new Error(result.error.issues[0]?.message ?? "Confira os dados.");
 
   const initialInput = result.data.initialAmount?.trim();
-  const initialCents = initialInput ? parseBrazilianCents(initialInput) : 0;
+  const initialCents = initialInput
+    ? parseBrazilianCents(initialInput, { allowZero: true })
+    : 0;
   if (initialCents === null) throw new Error("Informe um saldo inicial válido.");
   await prisma.financialAccount.create({ data: { name: result.data.name, type: result.data.type, initialCents, userId: user.id } });
   revalidatePath("/");

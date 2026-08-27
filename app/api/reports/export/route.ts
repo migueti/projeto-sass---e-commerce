@@ -14,6 +14,10 @@ function money(cents: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 }
 
+function spreadsheetText(value: string) {
+  return /^[\t\r\n ]*[=+\-@]/.test(value) ? `'${value}` : value;
+}
+
 async function createPdf(rows: Array<{ description: string; type: string; cents: number; occurredAt: Date; account: { name: string }; category: { name: string } | null }>, title: string) {
   const document = new PDFDocument({ margin: 48 });
   const chunks: Buffer[] = [];
@@ -60,7 +64,7 @@ export async function GET(request: Request) {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Lançamentos");
     sheet.columns = [{ header: "Descrição", key: "description", width: 32 }, { header: "Tipo", key: "type", width: 14 }, { header: "Valor", key: "amount", width: 18 }, { header: "Data", key: "date", width: 16 }, { header: "Conta", key: "account", width: 22 }, { header: "Categoria", key: "category", width: 20 }];
-    rows.forEach((row) => sheet.addRow({ description: row.description, type: row.type === "INCOME" ? "Receita" : "Despesa", amount: row.cents / 100, date: row.occurredAt, account: row.account.name, category: row.category?.name ?? "Sem categoria" }));
+    rows.forEach((row) => sheet.addRow({ description: spreadsheetText(row.description), type: row.type === "INCOME" ? "Receita" : "Despesa", amount: row.cents / 100, date: row.occurredAt, account: spreadsheetText(row.account.name), category: spreadsheetText(row.category?.name ?? "Sem categoria") }));
     sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
     sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF5D8E63" } };
     sheet.getColumn("amount").numFmt = 'R$ #,##0.00';

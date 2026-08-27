@@ -38,4 +38,13 @@ describe("getNextRecurrenceDate", () => {
       getNextRecurrenceDate(date("2026-02-28"), "MONTHLY", scheduledDay),
     ).toEqual(date("2026-03-30"));
   });
+
+  it("keeps explicit leap-day schedules at month end", () => {
+    expect(
+      getNextRecurrenceDate(date("2028-02-29"), "YEARLY", 29),
+    ).toEqual(date("2029-02-28"));
+    expect(
+      getNextRecurrenceDate(date("2029-02-28"), "YEARLY", 29),
+    ).toEqual(date("2030-02-28"));
+  });
 });

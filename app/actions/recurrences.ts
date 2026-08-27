@@ -9,7 +9,11 @@ import { getNextRecurrenceDate } from "@/lib/recurrence";
 import { parseBrazilianCents, parseLocalDate } from "@/lib/validation";
 
 const recurrenceSchema = z.object({
-  description: z.string().trim().min(2, "Informe uma descrição."),
+  description: z
+    .string()
+    .trim()
+    .min(2, "Informe uma descrição.")
+    .max(120, "Use no máximo 120 caracteres na descrição."),
   amount: z.string().min(1, "Informe um valor."),
   type: z.enum(["INCOME", "EXPENSE"]),
   frequency: z.enum(["WEEKLY", "MONTHLY", "YEARLY"]),
