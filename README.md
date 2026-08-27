@@ -92,6 +92,7 @@ kill <PID>
 | `DATABASE_URL` | Caminho da base SQLite | `file:./dev.db` |
 | `NEXTAUTH_SECRET` | Segredo usado para assinar a sessão | valor aleatório longo |
 | `NEXTAUTH_URL` | URL pública da aplicação | `http://localhost:3000` |
+| `APP_URL` | URL pública HTTPS usada pelo Mercado Pago em callbacks e retornos | `https://app.example.com` |
 | `MERCADOPAGO_ACCESS_TOKEN` | Token privado da API do Mercado Pago | valor do painel Mercado Pago |
 | `MERCADOPAGO_WEBHOOK_SECRET` | Segredo para validar a assinatura dos webhooks | segredo configurado no Mercado Pago |
 | `MERCADOPAGO_USE_SANDBOX` | Usa o `sandbox_init_point` no Checkout Pro | `true` em testes |
@@ -166,6 +167,7 @@ Antes de publicar, configure as variáveis de ambiente na plataforma:
 - `DATABASE_URL`: caminho do banco ou URL de um banco compatível.
 - `NEXTAUTH_SECRET`: segredo longo, aleatório e exclusivo do ambiente.
 - `NEXTAUTH_URL`: URL pública exata da aplicação, nunca `localhost` em produção.
+- `APP_URL`: URL pública HTTPS exata usada pelo Mercado Pago para `/api/payments/webhook` e retornos do checkout.
 
 Execute `npm run db:deploy` no ambiente de produção antes de iniciar a aplicação.
 Depois, execute `npm run build` e `npm run start`, ou use os comandos equivalentes

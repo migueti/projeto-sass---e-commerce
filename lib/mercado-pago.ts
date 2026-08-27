@@ -2,6 +2,25 @@ import { randomUUID } from "node:crypto";
 import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 import { getPlanPriceCents } from "@/lib/billing";
 
+export function getMercadoPagoBaseUrl() {
+  const value = process.env.APP_URL ?? process.env.NEXTAUTH_URL;
+  if (!value) throw new Error("MERCADOPAGO_NOT_CONFIGURED");
+
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("MERCADOPAGO_INVALID_BASE_URL");
+  }
+
+  if (!url.hostname || !["http:", "https:"].includes(url.protocol))
+    throw new Error("MERCADOPAGO_INVALID_BASE_URL");
+  if (url.pathname !== "/" || url.search || url.hash)
+    throw new Error("MERCADOPAGO_INVALID_BASE_URL");
+
+  return url.origin;
+}
+
 function client() {
   const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
   if (!accessToken) throw new Error("MERCADOPAGO_NOT_CONFIGURED");
@@ -36,8 +55,7 @@ export function buildCheckoutPreferenceBody(
 }
 
 export async function createCheckoutPreference(userId: string, email: string) {
-  const baseUrl = process.env.NEXTAUTH_URL;
-  if (!baseUrl) throw new Error("MERCADOPAGO_NOT_CONFIGURED");
+  const baseUrl = getMercadoPagoBaseUrl();
   const priceCents = await getPlanPriceCents();
   const externalReference = `nuvem:user:${userId}:price:${priceCents}:${randomUUID()}`;
   const response = await new Preference(client()).create({
