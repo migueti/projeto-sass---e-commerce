@@ -1,5 +1,5 @@
 import { describe, test, expect, mock, beforeEach } from "bun:test";
-import { createPluggyClient, assertConfig } from "../pluggy-client.js";
+import { createPluggyClient, assertConfig } from "./pluggy-client.js";
 
 function mockFetch() {
   const fn = mock();

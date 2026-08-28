@@ -1,1 +1,0 @@
-bunx secretlint --secretlintrc .secretlintrc.json "**/*"

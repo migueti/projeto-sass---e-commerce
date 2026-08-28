@@ -2,8 +2,8 @@ import { describe, test, expect } from "bun:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerTools } from "../tools.js";
-import { createPluggyClient } from "../pluggy-client.js";
+import { registerTools } from "./tools.js";
+import { createPluggyClient } from "./pluggy-client.js";
 
 const EXPECTED_TOOLS = [
   "list_connectors",
