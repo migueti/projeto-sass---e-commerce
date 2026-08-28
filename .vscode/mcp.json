@@ -54,8 +54,8 @@
 			"type": "stdio"
 		},
 		"pluggy": {
-			"command": "node",
-			"args": ["pluggy mcp/dist/index.js"],
+			"command": "npm",
+			"args": ["--prefix", "pluggy mcp", "run", "dev"],
 			"env": {
 				"PLUGGY_CLIENT_ID": "${input:PLUGGY_CLIENT_ID}",
 				"PLUGGY_CLIENT_SECRET": "${input:PLUGGY_CLIENT_SECRET}",
