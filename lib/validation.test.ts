@@ -99,5 +99,15 @@ describe("form schemas", () => {
         occurredAt: "2026-03-01",
       }).success,
     ).toBe(false);
+
+    expect(
+      transactionSchema.safeParse({
+        description: "Compra",
+        amount: "50,00",
+        type: "EXPENSE",
+        accountId: "account-1",
+        occurredAt: "2026-02-30",
+      }).success,
+    ).toBe(false);
   });
 });
