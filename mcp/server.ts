@@ -9,6 +9,10 @@ import * as z from "zod/v4";
 const execFileAsync = promisify(execFile);
 const repositoryRoot = resolve(import.meta.dirname, "..");
 const maxReadableFileBytes = 64 * 1024;
+const validationTimeoutMs = 120_000;
+const blockedPathSegments = new Set([".git", ".next", "node_modules"]);
+const blockedFilePatterns = [/^\.env(?:\.(?!example$).*)?$/i, /\.db(?:-.+)?$/i];
+const secretEnvironmentPattern = /(API_KEY|PASSWORD|PRIVATE_KEY|SECRET|TOKEN)/i;
 const allowedChecks = {
   typecheck: ["run", "typecheck"],
   lint: ["run", "lint"],
@@ -26,6 +30,13 @@ async function readRepositoryText(filePath: string) {
 
   if (isAbsolute(pathFromRoot) || pathFromRoot.startsWith("..")) {
     throw new Error("O caminho deve estar dentro do repositório.");
+  }
+  const pathSegments = pathFromRoot.split(/[\\/]/);
+  if (
+    pathSegments.some((segment) => blockedPathSegments.has(segment)) ||
+    blockedFilePatterns.some((pattern) => pattern.test(pathSegments.at(-1) ?? ""))
+  ) {
+    throw new Error("Este arquivo é sensível ou não deve ser analisado pelo MCP.");
   }
 
   const fileStats = await stat(realCandidate);
@@ -49,6 +60,12 @@ function toolError(error: unknown) {
       },
     ],
   };
+}
+
+function safeValidationEnvironment(): NodeJS.ProcessEnv {
+  return Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => !secretEnvironmentPattern.test(key)),
+  ) as NodeJS.ProcessEnv;
 }
 
 const server = new McpServer({
@@ -77,7 +94,8 @@ server.registerPrompt(
             "1. Use engenharia-local para ler o protocolo, analisar os arquivos relevantes e validar o projeto.",
             "2. Use Context7 para consultar a documentação atual de bibliotecas, frameworks ou APIs envolvidas.",
             "3. Use Sequential Thinking para formular uma hipótese, escolher a menor mudança e revisar os riscos.",
-            "4. Consolide os resultados antes de editar e execute uma validação focada após cada alteração.",
+            "4. Para TDD, use a skill local mattpock/tdd.md; para bugs, mattpock/diagnosing-bugs.md; para revisão, mattpock/code-review.md; para arquitetura, mattpock/improve-codebase-architecture.md.",
+            "5. Consolide os resultados antes de editar e execute uma validação focada após cada alteração.",
           ].join("\n"),
         },
       },
@@ -131,7 +149,10 @@ server.registerTool(
     try {
       const result = await execFileAsync("npm", [command, ...args], {
         cwd: repositoryRoot,
+        env: safeValidationEnvironment(),
         maxBuffer: 1024 * 1024 * 4,
+        timeout: validationTimeoutMs,
+        killSignal: "SIGTERM",
       });
 
       return {
@@ -144,7 +165,7 @@ server.registerTool(
         content: [
           {
             type: "text",
-            text: `${commandError.stdout ?? ""}${commandError.stderr ?? commandError.message ?? "Falha na validação."}`,
+            text: `${commandError.stdout ?? ""}${commandError.stderr ?? ""}${commandError.message ?? "Falha na validação."}`,
           },
         ],
       };
