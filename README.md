@@ -1,114 +1,189 @@
-# @gu-does-packages/pluggy-mcp
+# nuvem.
 
-Servidor MCP para **[Pluggy](https://pluggy.ai)** — agregador Open Finance Brasil (ITP/TPP).
+Aplicativo de controle financeiro pessoal em português, construído com Next.js App Router. Permite gerenciar contas, categorias, lançamentos, recorrências, metas financeiras, importação de extratos e exportação de relatórios.
 
-Baseado no [`@codespar/mcp-pluggy`](https://www.npmjs.com/package/@codespar/mcp-pluggy) por [CodeSpar](https://codespar.dev), estendido com funcionalidades adicionais.
+O projeto também integra Mercado Pago para liberar o acesso pago e Pluggy para conectar instituições financeiras por Open Finance.
 
-> **Licença:** MIT — mantém os créditos ao trabalho original da CodeSpar.
+## Stack
 
-## Setup
+- Next.js 16 e React 19
+- TypeScript, ESLint e Vitest
+- Prisma ORM com SQLite
+- NextAuth Credentials com sessões JWT
+- Zod para validação de entradas
+- Mercado Pago Checkout Pro
+- Pluggy Connect e `pluggy-js`
+- ExcelJS, JSZip, PDFKit e `pdf-parse`
+
+## Requisitos
+
+- Node.js 20 ou superior
+- npm
+
+Bun também pode ser usado dentro do pacote independente `pluggy mcp/`.
+
+## Desenvolvimento local
 
 ```bash
-bun install
+npm install
+cp .env.example .env
+npm run db:generate
+npm run db:migrate
+npm run dev
 ```
 
-## Quick Start
-
-### Via npx (recomendado)
+Abra <http://localhost:3000>. Se a porta estiver ocupada, use outra:
 
 ```bash
+PORT=3001 npm run dev
+```
+
+O arquivo `.env` é carregado automaticamente pelo Next.js e não deve ser versionado.
+
+## Variáveis de ambiente
+
+| Variável | Obrigatória | Descrição |
+| --- | --- | --- |
+| `DATABASE_URL` | sim | Banco Prisma. Localmente: `file:./dev.db` |
+| `NEXTAUTH_SECRET` | sim | Segredo forte para assinar sessões |
+| `NEXTAUTH_URL` | sim | URL pública exata da aplicação |
+| `APP_URL` | pagamentos | URL pública usada nos callbacks do Mercado Pago |
+| `ADMIN_EMAIL` | sim | E-mail que recebe acesso administrativo |
+| `MERCADOPAGO_ACCESS_TOKEN` | pagamentos | Token privado do Mercado Pago |
+| `MERCADOPAGO_WEBHOOK_SECRET` | pagamentos | Segredo para validar webhook de pagamento |
+| `MERCADOPAGO_USE_SANDBOX` | pagamentos | `true` para token `TEST-`, `false` para `APP_USR-` |
+| `NUVEM_PLAN_PRICE` | não | Fallback inicial do preço em BRL |
+| `PLUGGY_CLIENT_ID` | Open Finance | Client ID privado do painel Pluggy |
+| `PLUGGY_CLIENT_SECRET` | Open Finance | Client Secret privado do painel Pluggy |
+| `PLUGGY_API_BASE` | não | Padrão: `https://api.pluggy.ai` |
+| `PLUGGY_WEBHOOK_URL` | não | URL HTTPS pública de `/api/webhooks/pluggy` |
+| `SERVER_ACTION_ALLOWED_ORIGINS` | não | Hosts extras atrás de proxy, separados por vírgula |
+
+Gere um segredo para o NextAuth com:
+
 ```bash
-npx @gu-does-packages/pluggy-mcp
+openssl rand -base64 32
 ```
 
-### Claude Desktop
+Nunca coloque `PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`, tokens de pagamento ou qualquer API key no frontend, no Git ou neste README. Uma API key temporária da Pluggy deve ser considerada comprometida se for publicada e substituída no painel do provedor.
 
-Adicione ao `claude_desktop_config.json`:
+## Funcionalidades
 
-```json
-{
-  "mcpServers": {
-    "pluggy": {
-      "command": "npx",
-      "args": ["@gu-does-packages/pluggy-mcp"],
-      "env": {
-        "PLUGGY_CLIENT_ID": "seu-client-id",
-        "PLUGGY_CLIENT_SECRET": "seu-client-secret"
-      }
-    }
-  }
-}
+### Finanças pessoais
+
+- Dashboard com saldo inicial, receitas, despesas e filtros por período.
+- Contas correntes, poupança e carteira.
+- Categorias personalizadas.
+- Lançamentos com valores persistidos em centavos.
+- Datas civis `YYYY-MM-DD` sem deslocamento de fuso.
+- Lançamentos recorrentes semanais, mensais e anuais.
+- Metas financeiras e contribuições transacionais.
+- Importação de extratos e exportação em XLSX/PDF/ZIP.
+
+### Acesso pago
+
+O cadastro cria a conta e categorias iniciais. O usuário sem acesso é enviado para `/assinar`. O Checkout Pro é criado no servidor e o acesso só é liberado após o webhook assinado do Mercado Pago confirmar pagamento aprovado.
+
+Administradores são definidos pelo papel `ADMIN` ou por `ADMIN_EMAIL` e podem alterar o preço do plano em `/admin`.
+
+### Pluggy Open Finance
+
+O admin possui um Playground Pluggy em `/admin` para:
+
+- listar instituições e status dos conectores;
+- visualizar conectores sandbox;
+- gerar Connect Token server-side;
+- abrir o widget Pluggy Connect;
+- testar o fluxo de consentimento bancário.
+
+O endpoint `POST /api/connect-token` deriva `clientUserId` da sessão e nunca aceita credenciais do navegador. O webhook `POST /api/webhooks/pluggy` valida o formato do evento e responde rapidamente para `item/created`, `item/updated`, `item/error`, `transactions/created`, `transactions/updated` e `transactions/deleted`.
+
+As credenciais reais devem ser configuradas no ambiente do servidor:
+
+```env
+PLUGGY_CLIENT_ID=seu-client-id-real
+PLUGGY_CLIENT_SECRET=seu-client-secret-real
+PLUGGY_API_BASE=https://api.pluggy.ai
+PLUGGY_WEBHOOK_URL=https://seu-dominio.com/api/webhooks/pluggy
 ```
 
-### Cursor / VS Code
+## Rotas principais
 
-Mesma configuração em `.cursor/mcp.json` ou no JSON de MCP do VS Code.
+| Rota | Uso |
+| --- | --- |
+| `/` | Dashboard protegido |
+| `/login` | Login |
+| `/cadastro` | Cadastro |
+| `/assinar` | Checkout e status do acesso |
+| `/contas` | Contas e conexão Pluggy |
+| `/categorias` | Categorias |
+| `/lancamentos` | Lançamentos e importação |
+| `/recorrencias` | Recorrências |
+| `/metas` | Metas financeiras |
+| `/admin` | Administração e Playground Pluggy |
+| `/api/health` | Readiness público do app e banco |
 
-## Autenticação
+## API e segurança
 
-Pluggy usa OAuth2 client-credentials. Obtenha suas credenciais no [dashboard da Pluggy](https://dashboard.pluggy.ai).
-
-| Variável | Obrigatório | Descrição |
-|---|---|---|
-| `PLUGGY_CLIENT_ID` | sim | Client ID do dashboard |
-| `PLUGGY_CLIENT_SECRET` | sim | Client Secret do dashboard |
-| `PLUGGY_API_BASE` | não | URL base da API (default `https://api.pluggy.ai`) |
-
-### Sandbox
-
-A Pluggy disponibiliza conectores sandbox (`Pluggy Bank`, `BR · Pluggy Bank`) que funcionam com o mesmo endpoint de produção. Use `list_connectors` com `sandbox: true` para listá-los.
+- Dados financeiros são sempre filtrados pelo usuário da sessão.
+- Mutations usam Server Actions ou Route Handlers autenticados.
+- Rotas administrativas exigem `requireAdminUser()`.
+- Dados privados usam `Cache-Control: private, no-store, max-age=0`.
+- Webhooks não expõem detalhes internos e usam `Cache-Control: no-store`.
+- Valores monetários são inteiros em centavos, nunca decimais no banco.
+- O health check retorna `200` com banco disponível e `503` sem detalhes internos quando o banco está indisponível.
 
 ## Comandos
 
-| Comando | Descrição |
-|---------|-----------|
-| `bun run build` | Compila para Node.js (`dist/index.js`) |
-| `bun run start` | Roda o servidor MCP (`node dist/index.js`) |
-| `bun run test` | Roda os testes automatizados |
-| `bun run inspect` | Abre o MCP Inspector (UI interativa no navegador) |
-
-## Créditos
-
-Este projeto é um fork estendido do [`@codespar/mcp-pluggy`](https://www.npmjs.com/package/@codespar/mcp-pluggy) (MIT), mantendo toda a funcionalidade original dos 18 tools MCP para a API Pluggy. Agradecimentos à [CodeSpar](https://codespar.dev) pelo trabalho base.
-
-### Extensões em relação ao original
-
-- `list_investments` — recupera todos os investimentos de um item (`GET /investments`)
-- `get_investment` — recupera um investimento específico por ID (`GET /investments/{id}`)
-- `list_investment_transactions` — recupera todas as transações de um investimento (`GET /investments/{id}/transactions`)
-
-## Funcionalidades (18 tools)
-
-| Tool | Endpoint Pluggy | Descrição |
-|---|---|---|
-| `list_connectors` | `GET /connectors` | Lista conectores (bancos) |
-| `get_connector` | `GET /connectors/{id}` | Detalhes de um conector |
-| `list_categories` | `GET /categories` | Taxonomia de categorias |
-| `create_connect_token` | `POST /connect_token` | Token para Pluggy Connect |
-| `create_item` | `POST /items` | Nova conexão bancária |
-| `get_item` | `GET /items/{id}` | Detalhes de uma conexão |
-| `update_item` | `PATCH /items/{id}` | Atualiza credenciais/sync |
-| `delete_item` | `DELETE /items/{id}` | Revoga conexão |
-| `list_accounts` | `GET /accounts` | Contas de um item |
-| `get_account` | `GET /accounts/{id}` | Detalhes de uma conta |
-| `list_transactions` | `GET /transactions` | Transações de uma conta |
-| `get_transaction` | `GET /transactions/{id}` | Detalhes de uma transação |
-| `list_identities` | `GET /identity` | Dados cadastrais (CPF, nome, endereço) |
-| `list_investments` | `GET /investments` | Investimentos de um item |
-| `get_investment` | `GET /investments/{id}` | Detalhes de um investimento |
-| `list_investment_transactions` | `GET /investments/{id}/transactions` | Transações de um investimento |
-| `create_payment_intent` | `POST /payments/intents` | Inicia intent de pagamento |
-| `get_payment_intent` | `GET /payments/intents/{id}` | Status do payment intent |
-
-## Publicação
-
 ```bash
-bun run build
-npm publish
+npm run dev          # desenvolvimento
+npm run build        # build de produção
+npm run start        # inicia o build de produção
+npm test             # suíte Vitest
+npm run typecheck    # TypeScript
+npm run lint         # ESLint
+npm run db:generate  # gera Prisma Client
+npm run db:migrate   # migrações locais
+npm run db:deploy    # migrações de produção/CI
+npm run mcp:check    # verifica o servidor engenharia-local
 ```
 
-`npx @gu-does-packages/pluggy-mcp` funciona em qualquer máquina com Node.js instalado.
+Teste um arquivo específico:
 
-## Licença
+```bash
+npx vitest run --configLoader runner lib/validation.test.ts
+```
 
-MIT — veja [LICENSE](LICENSE).
+Antes de publicar:
+
+```bash
+npm test && npm run typecheck && npm run lint && npm run build
+```
+
+## MCP Pluggy independente
+
+O servidor MCP fica isolado em [`pluggy mcp/`](pluggy%20mcp/). Ele oferece 18 tools para a API Pluggy, incluindo conectores, itens, contas, transações, identidades, investimentos e payment intents.
+
+```bash
+cd "pluggy mcp"
+npm install
+npm run typecheck
+npm run build
+npx --yes bun test
+npm run start
+```
+
+O arquivo `.vscode/mcp.json` já contém as configurações de `engenharia-local`, `sequential-thinking`, `context7` e `pluggy`. As credenciais do MCP Pluggy são solicitadas por inputs secretos do VS Code.
+
+## Deploy no Render
+
+Configure as variáveis de ambiente no serviço Web e use:
+
+- **Build Command:** `npm install && npm run db:generate && npm run db:deploy && npm run build`
+- **Start Command:** `npm run start`
+
+Use `NEXTAUTH_URL` e `APP_URL` com a URL pública HTTPS do Render. Para webhooks Pluggy, configure `PLUGGY_WEBHOOK_URL` com essa mesma URL e o caminho `/api/webhooks/pluggy`. SQLite exige disco persistente e backup; em produção, um banco externo compatível é recomendado quando o filesystem for efêmero.
+
+## Dados locais e licença
+
+Não versione `.env`, `prisma/dev.db`, arquivos auxiliares SQLite, tokens, hashes, sessões ou dados financeiros. A licença do aplicativo está em [`LICENSE`](LICENSE). O MCP Pluggy mantém os créditos e a licença MIT do trabalho base da CodeSpar; consulte [`pluggy mcp/LICENSE`](pluggy%20mcp/LICENSE).

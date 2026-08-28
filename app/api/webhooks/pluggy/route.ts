@@ -3,9 +3,20 @@ import { z } from "zod";
 
 const WEBHOOK_NO_STORE_HEADERS = { "Cache-Control": "no-store" } as const;
 const pluggyEventSchema = z.object({
-  event: z.enum(["item/created", "item/updated", "item/error"]),
+  event: z.enum([
+    "item/created",
+    "item/updated",
+    "item/error",
+    "transactions/created",
+    "transactions/updated",
+    "transactions/deleted",
+  ]),
   eventId: z.string().trim().min(1).max(200),
   itemId: z.string().trim().min(1).max(200),
+  accountId: z.string().trim().min(1).max(200).optional(),
+  transactionIds: z.array(z.string().trim().min(1).max(200)).max(10_000).optional(),
+  clientUserId: z.string().trim().min(1).max(200).optional(),
+  triggeredBy: z.string().trim().min(1).max(50).optional(),
   triggeredAt: z.string().datetime().optional(),
   error: z.unknown().optional(),
 });
