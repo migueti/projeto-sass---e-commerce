@@ -1,12 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requirePaidUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getNextRecurrenceDate } from "@/lib/recurrence";
 import { parseBrazilianCents, parseLocalDate } from "@/lib/validation";
+import { revalidatePaths } from "@/lib/revalidation";
 
 const recurrenceSchema = z.object({
   description: z
@@ -66,8 +66,7 @@ export async function createRecurrence(formData: FormData) {
       endAt,
     },
   });
-  revalidatePath("/recorrencias");
-  revalidatePath("/");
+  revalidatePaths("/recorrencias", "/");
 }
 
 export async function processRecurrence(id: string) {
@@ -124,10 +123,7 @@ export async function processRecurrence(id: string) {
     return true;
   });
   if (!updated) throw new Error("A recorrência já foi processada.");
-  revalidatePath("/recorrencias");
-  revalidatePath("/lancamentos");
-  revalidatePath("/contas");
-  revalidatePath("/");
+  revalidatePaths("/recorrencias", "/lancamentos", "/contas", "/");
 }
 
 export async function toggleRecurrence(id: string) {
@@ -139,14 +135,12 @@ export async function toggleRecurrence(id: string) {
     data: { active: !recurrence.active },
   });
   if (updated.count !== 1) throw new Error("A recorrência foi alterada. Atualize a página e tente novamente.");
-  revalidatePath("/recorrencias");
-  revalidatePath("/");
+  revalidatePaths("/recorrencias", "/");
 }
 
 export async function deleteRecurrence(id: string) {
   const user = await requirePaidUser();
   const result = await prisma.recurringTransaction.deleteMany({ where: { id, userId: user.id } });
   if (result.count !== 1) throw new Error("Recorrência não encontrada.");
-  revalidatePath("/recorrencias");
-  revalidatePath("/");
+  revalidatePaths("/recorrencias", "/");
 }

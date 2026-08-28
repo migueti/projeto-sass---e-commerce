@@ -1,12 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 
 import { requirePaidUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { revalidatePaths } from "@/lib/revalidation";
 
 const categorySchema = z.object({
   name: z
@@ -36,16 +36,12 @@ export async function createCategory(formData: FormData) {
     Sentry.captureException(error);
     throw error;
   }
-  revalidatePath("/categorias");
-  revalidatePath("/");
+  revalidatePaths("/categorias", "/");
 }
 
 export async function deleteCategory(id: string) {
   const user = await requirePaidUser();
   const result = await prisma.category.deleteMany({ where: { id, userId: user.id } });
   if (result.count !== 1) throw new Error("Categoria não encontrada.");
-  revalidatePath("/categorias");
-  revalidatePath("/lancamentos");
-  revalidatePath("/recorrencias");
-  revalidatePath("/");
+  revalidatePaths("/categorias", "/lancamentos", "/recorrencias", "/");
 }

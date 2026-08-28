@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const BCRYPT_MAX_PASSWORD_BYTES = 72;
+const MAX_CURRENCY_INPUT_LENGTH = 32;
 
 export const passwordSchema = z
   .string()
@@ -46,7 +47,7 @@ export function parseBrazilianCents(
 ) {
   const { allowZero = false } = options;
   const raw = value.trim().replace(/^r\$\s?/i, "");
-  if (!raw) return null;
+  if (!raw || raw.length > MAX_CURRENCY_INPUT_LENGTH) return null;
 
   const match = /^(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,2}))?$/.exec(raw);
   if (!match) return null;

@@ -1,11 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requirePaidUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseBrazilianCents, parseLocalDate } from "@/lib/validation";
+import { revalidatePaths } from "@/lib/revalidation";
 
 const MAX_ACTIVE_GOALS = 100;
 
@@ -86,10 +86,7 @@ export async function createGoal(formData: FormData) {
       });
     }
   });
-  revalidatePath("/metas");
-  revalidatePath("/");
-  revalidatePath("/contas");
-  revalidatePath("/lancamentos");
+  revalidatePaths("/metas", "/", "/contas", "/lancamentos");
 }
 
 export async function deleteGoal(id: string) {
@@ -104,8 +101,7 @@ export async function deleteGoal(id: string) {
 
   const result = await prisma.financialGoal.deleteMany({ where: { id, userId: user.id } });
   if (result.count !== 1) throw new Error("Meta não encontrada.");
-  revalidatePath("/metas");
-  revalidatePath("/");
+  revalidatePaths("/metas", "/");
 }
 
 export async function addGoalContribution(id: string, formData: FormData) {
@@ -156,8 +152,5 @@ export async function addGoalContribution(id: string, formData: FormData) {
       });
     }
   });
-  revalidatePath("/metas");
-  revalidatePath("/");
-  revalidatePath("/contas");
-  revalidatePath("/lancamentos");
+  revalidatePaths("/metas", "/", "/contas", "/lancamentos");
 }

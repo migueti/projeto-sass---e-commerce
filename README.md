@@ -106,7 +106,11 @@ Não versione `.env` nem o banco local. Use `.env.example` como referência.
 
 ## MCP do Obsidian
 
-O workspace já inclui o servidor `obsidian` em `.vscode/mcp.json`. Para ativá-lo:
+O workspace já inclui os servidores `sequential-thinking`, `context7` e `obsidian` em `.vscode/mcp.json`. A configuração `.vscode/settings.json` solicita que o VS Code inicie automaticamente servidores novos ou desatualizados.
+
+Essa configuração não reativa um servidor que foi desabilitado manualmente nem preenche tokens protegidos. Nesses casos, reative o servidor nos controles MCP do VS Code, informe o token quando solicitado e repita a ação.
+
+Para configurar o Obsidian:
 
 1. Instale e ative o plugin Obsidian MCP Server no Obsidian.
 2. Confirme a porta configurada, normalmente `27123`.

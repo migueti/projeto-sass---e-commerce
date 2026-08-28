@@ -10,6 +10,7 @@ export type DashboardFilters = {
 };
 
 export const MAX_DASHBOARD_ROWS = 10_000;
+export const DASHBOARD_TIME_ZONE = "America/Sao_Paulo";
 
 export function exceedsDashboardLimit(rowCount: number) {
   return rowCount > MAX_DASHBOARD_ROWS;
@@ -30,16 +31,59 @@ export function getDashboardDateRange(
   period: DashboardPeriod,
   referenceDate = new Date(),
 ) {
-  const end = new Date(referenceDate);
-  end.setUTCHours(23, 59, 59, 999);
-  const start = new Date(end);
+  const localDate = getDatePartsInTimeZone(referenceDate, DASHBOARD_TIME_ZONE);
+  const endParts = { ...localDate, hour: 23, minute: 59, second: 59, millisecond: 999 };
+  const startParts = { ...localDate, hour: 0, minute: 0, second: 0, millisecond: 0 };
 
-  if (period === "30days") start.setUTCDate(start.getUTCDate() - 29);
-  else if (period === "year") start.setUTCMonth(0, 1);
-  else start.setUTCDate(1);
+  if (period === "30days") shiftCalendarDate(startParts, -29);
+  else if (period === "year") {
+    startParts.month = 1;
+    startParts.day = 1;
+  } else startParts.day = 1;
 
-  start.setUTCHours(0, 0, 0, 0);
+  const start = zonedPartsToDate(startParts, DASHBOARD_TIME_ZONE);
+  const end = zonedPartsToDate(endParts, DASHBOARD_TIME_ZONE);
   return { start, end };
+}
+
+type DateParts = {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+  millisecond: number;
+};
+
+function getDatePartsInTimeZone(date: Date, timeZone: string): DateParts {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, Number(value)]));
+  return { ...values, millisecond: date.getUTCMilliseconds() } as DateParts;
+}
+
+function shiftCalendarDate(parts: DateParts, days: number) {
+  const shifted = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + days));
+  parts.year = shifted.getUTCFullYear();
+  parts.month = shifted.getUTCMonth() + 1;
+  parts.day = shifted.getUTCDate();
+}
+
+function zonedPartsToDate(parts: DateParts, timeZone: string) {
+  const desired = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second, parts.millisecond);
+  const guess = new Date(desired);
+  const actual = getDatePartsInTimeZone(guess, timeZone);
+  const actualAsUtc = Date.UTC(actual.year, actual.month - 1, actual.day, actual.hour, actual.minute, actual.second, actual.millisecond);
+  return new Date(desired + (desired - actualAsUtc));
 }
 
 export async function getDashboard(userId: string, filters: DashboardFilters) {

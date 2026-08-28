@@ -1,11 +1,15 @@
 import { prisma } from "@/lib/prisma";
 
 const DEFAULT_PLAN_PRICE_CENTS = 2990;
+const MAX_PLAN_PRICE_CENTS = 2_147_483_647;
 
-function initialPlanPriceCents() {
-  const configured = Number(process.env.NUVEM_PLAN_PRICE ?? "");
-  return Number.isFinite(configured) && configured > 0
-    ? Math.round(configured * 100)
+export function initialPlanPriceCents(value = process.env.NUVEM_PLAN_PRICE) {
+  const configured = Number(value ?? "");
+  if (!Number.isFinite(configured) || configured <= 0) return DEFAULT_PLAN_PRICE_CENTS;
+
+  const cents = Math.round(configured * 100);
+  return cents > 0 && cents <= MAX_PLAN_PRICE_CENTS
+    ? cents
     : DEFAULT_PLAN_PRICE_CENTS;
 }
 

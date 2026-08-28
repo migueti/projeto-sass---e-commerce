@@ -1,10 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireAdminUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { revalidatePaths } from "@/lib/revalidation";
 import { parseBrazilianCents } from "@/lib/validation";
 
 const priceSchema = z.object({
@@ -29,7 +29,6 @@ export async function updatePlanPrice(
     create: { id: "global", planPriceCents: priceCents },
     update: { planPriceCents: priceCents },
   });
-  revalidatePath("/admin");
-  revalidatePath("/assinar");
+  revalidatePaths("/admin", "/assinar");
   return { success: true };
 }

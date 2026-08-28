@@ -1,25 +1,28 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { requirePaidUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { revalidateFinancialPaths, revalidatePaths } from "@/lib/revalidation";
 import { accountSchema, parseBrazilianCents, parseLocalDate, transactionSchema } from "@/lib/validation";
 
-export async function createAccount(formData: FormData) {
+export type AccountActionState = { message: string };
+
+export async function createAccount(
+  _previousState: AccountActionState,
+  formData: FormData,
+): Promise<AccountActionState> {
   const user = await requirePaidUser();
   const result = accountSchema.safeParse(Object.fromEntries(formData));
-  if (!result.success) throw new Error(result.error.issues[0]?.message ?? "Confira os dados.");
+  if (!result.success) return { message: result.error.issues[0]?.message ?? "Confira os dados." };
 
   const initialInput = result.data.initialAmount?.trim();
   const initialCents = initialInput
     ? parseBrazilianCents(initialInput, { allowZero: true })
     : 0;
-  if (initialCents === null) throw new Error("Informe um saldo inicial válido.");
+  if (initialCents === null) return { message: "Informe um saldo inicial válido." };
   await prisma.financialAccount.create({ data: { name: result.data.name, type: result.data.type, initialCents, userId: user.id } });
-  revalidatePath("/");
-  revalidatePath("/contas");
-  revalidatePath("/lancamentos");
+  revalidateFinancialPaths();
+  return { message: "Conta adicionada com sucesso." };
 }
 
 export async function createTransaction(formData: FormData) {
@@ -51,9 +54,7 @@ export async function createTransaction(formData: FormData) {
       notes: result.data.notes || null,
     },
   });
-  revalidatePath("/");
-  revalidatePath("/lancamentos");
-  revalidatePath("/contas");
+  revalidatePaths("/", "/contas", "/lancamentos");
 }
 
 export async function deleteTransaction(id: string) {
@@ -70,9 +71,7 @@ export async function deleteTransaction(id: string) {
   const result = await prisma.transaction.deleteMany({ where: { id, userId: user.id } });
   if (result.count !== 1) throw new Error("Lançamento não encontrado.");
 
-  revalidatePath("/");
-  revalidatePath("/lancamentos");
-  revalidatePath("/contas");
+  revalidatePaths("/", "/contas", "/lancamentos");
 }
 
 export async function updateTransaction(id: string, formData: FormData) {
@@ -103,7 +102,5 @@ export async function updateTransaction(id: string, formData: FormData) {
     data: { description: result.data.description, cents, type: result.data.type, accountId: account.id, categoryId: result.data.categoryId || null, occurredAt, notes: result.data.notes || null },
   });
   if (updated.count !== 1) throw new Error("Lançamento não encontrado.");
-  revalidatePath("/");
-  revalidatePath("/lancamentos");
-  revalidatePath("/contas");
+  revalidatePaths("/", "/lancamentos", "/contas");
 }

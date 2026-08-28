@@ -1,4 +1,5 @@
-import { createAccount, createTransaction } from "@/app/actions/transactions";
+import { createTransaction } from "@/app/actions/transactions";
+import { AccountForm } from "@/components/account-form";
 import { DeleteTransactionButton } from "@/components/delete-transaction-button";
 import { type Prisma, TransactionType } from "@prisma/client";
 import Link from "next/link";
@@ -76,29 +77,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
       <div className="crud-grid">
         <section className="panel">
           <h3>Nova conta</h3>
-          <form action={createAccount} className="crud-form">
-            <label>
-              Nome
-              <input name="name" placeholder="Ex.: Nubank" required />
-            </label>
-            <label>
-              Tipo
-              <select name="type" defaultValue="checking">
-                <option value="checking">Conta corrente</option>
-                <option value="savings">Poupança</option>
-                <option value="cash">Carteira</option>
-              </select>
-            </label>
-            <label>
-              Saldo inicial
-              <input
-                name="initialAmount"
-                inputMode="decimal"
-                placeholder="0,00"
-              />
-            </label>
-            <button className="primary-button">Criar conta</button>
-          </form>
+          <AccountForm />
         </section>
         <section className="panel">
           <h3>Novo lançamento</h3>
