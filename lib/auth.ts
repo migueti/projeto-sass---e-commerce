@@ -17,15 +17,17 @@ export async function requireUser() {
 
 export async function requirePaidUser() {
   const user = await requireUser();
-  if (!user.hasPaid) redirect("/assinar");
+  if (!user.hasPaid && !isAdminUser(user)) redirect("/assinar");
   return user;
+}
+
+export function isAdminUser(user: { role: string; email: string }) {
+  const configuredAdminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  return user.role === "ADMIN" || user.email === configuredAdminEmail;
 }
 
 export async function requireAdminUser() {
   const user = await requireUser();
-  const configuredAdminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  if (user.role !== "ADMIN" && user.email !== configuredAdminEmail) {
-    throw new Error("FORBIDDEN");
-  }
+  if (!isAdminUser(user)) throw new Error("FORBIDDEN");
   return user;
 }
