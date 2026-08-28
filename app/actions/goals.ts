@@ -106,7 +106,9 @@ export async function deleteGoal(id: string) {
   if (goal._count.contributions > 0)
     throw new Error("Exclua os aportes da meta antes de excluir a meta.");
 
-  const result = await prisma.financialGoal.deleteMany({ where: { id, userId: user.id } });
+  const result = await prisma.financialGoal.deleteMany({
+    where: { id, userId: user.id, contributions: { none: {} } },
+  });
   if (result.count !== 1) throw new Error("Meta não encontrada.");
   revalidatePaths("/metas", "/");
 }

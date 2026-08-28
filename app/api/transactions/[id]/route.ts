@@ -1,7 +1,6 @@
-import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 
-import { requireUser } from "@/lib/auth";
+import { requirePaidApiUser } from "@/lib/auth";
 import { PRIVATE_NO_STORE_HEADERS } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 
@@ -12,8 +11,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 export async function DELETE(_request: Request, context: RouteContext) {
   try {
-    const user = await requireUser();
-    if (!user.hasPaid) return NextResponse.json({ error: "Pagamento necessário." }, { status: 402, headers: PRIVATE_NO_STORE_HEADERS });
+    const user = await requirePaidApiUser();
     const { id } = await context.params;
     if (!id?.trim()) return NextResponse.json({ error: "Lançamento inválido." }, { status: 400, headers: PRIVATE_NO_STORE_HEADERS });
 
@@ -56,6 +54,9 @@ export async function DELETE(_request: Request, context: RouteContext) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401, headers: PRIVATE_NO_STORE_HEADERS });
     }
+    if (error instanceof Error && error.message === "PAYMENT_REQUIRED") {
+      return NextResponse.json({ error: "Pagamento necessário." }, { status: 402, headers: PRIVATE_NO_STORE_HEADERS });
+    }
     if (error instanceof Error && error.message === "TRANSACTION_NOT_FOUND") {
       return NextResponse.json({ error: "Lançamento não encontrado." }, { status: 404, headers: PRIVATE_NO_STORE_HEADERS });
     }
@@ -65,7 +66,6 @@ export async function DELETE(_request: Request, context: RouteContext) {
     if (error instanceof Error && error.message === "GOAL_CONTRIBUTION_CONFLICT") {
       return NextResponse.json({ error: "A meta foi alterada por outro aporte. Tente novamente." }, { status: 409, headers: PRIVATE_NO_STORE_HEADERS });
     }
-    Sentry.captureException(error);
     return NextResponse.json({ error: "Não foi possível excluir o lançamento." }, { status: 500, headers: PRIVATE_NO_STORE_HEADERS });
   }
 }

@@ -2,124 +2,129 @@
 
 ## Project overview
 
-This repository is a Next.js 16.3.3 App Router app for `nuvem.`, a Portuguese-language personal finance tracker. It is centered on per-user financial data: accounts, categories, transactions, recurring transactions, goals, and subscription gating.
-
-The codebase is organized around the same pattern as the app itself:
-
-- `app/` holds the user-facing pages, server actions, and route handlers.
-- `app/actions/*.ts` is the write side: validate, enforce `userId` ownership, mutate Prisma, then call `revalidatePath(...)`.
-- `app/api/*` is mostly read/query and export endpoints; keep business logic out of route handlers when the same logic already lives in `lib/`.
-- `lib/` contains shared auth, validation, and dashboard logic that is reused across pages and APIs.
-- `prisma/schema.prisma` is the source of truth for the data model; SQLite is the default local database.
+`nuvem.` is a Portuguese-language personal finance tracker built with Next.js
+16 App Router and React 19. Users manage accounts, categories, transactions,
+recurring transactions and financial goals. All financial data is user-scoped;
+paid access and an admin pricing area are part of the application.
 
 ## Build, test, and lint commands
 
-Run from the repository root:
+Run from the repository root. Node.js 20+ and npm are required.
 
 ```bash
-npm run dev          # start the Next.js development server
-npm run build        # production build
-npm run start        # run the production build
-npm run lint         # ESLint
-npm run typecheck    # TypeScript compile check
+npm install
+cp .env.example .env
+npm run db:migrate
+npm run db:generate
+npm run dev
+```
+
+```bash
 npm test             # full Vitest suite
-
-# Database
-npm run db:migrate   # create or apply Prisma migrations locally
-npm run db:deploy    # apply migrations in CI/production
-npm run db:generate  # regenerate Prisma client
-
-# Single test example
-npx vitest run --configLoader runner lib/validation.test.ts
+npm run typecheck    # TypeScript
+npm run lint         # ESLint
+npm run build        # production build
+npm run start        # serve the production build
+npm run mcp:check    # check the local MCP server
+npm run db:migrate   # local Prisma migrations
+npm run db:deploy    # CI/production Prisma migrations
+npm run db:generate  # generate Prisma Client
 ```
 
-Use the `runner` loader for any targeted Vitest run, for example:
+Run one test file with the repository's required loader:
 
 ```bash
-npx vitest run --configLoader runner lib/dashboard.test.ts
-npx vitest run --configLoader runner app/api/reports/export/route.test.ts
+npx vitest run --configLoader runner lib/validation.test.ts
+npx vitest run --configLoader runner app/api/payments/routes.test.ts
 ```
 
-CI runs `npm ci`, Prisma generation, migrations, tests, typecheck, lint, and build on Node.js 20. Keep `package-lock.json` versioned.
+The CI workflow in `.github/workflows/ci.yml` runs `npm ci`, Prisma generation
+and migrations, tests, typecheck, lint, and build on Node.js 20. Keep
+`package-lock.json` versioned.
 
 ## High-level architecture
 
-Focus on these paths before making changes:
+- `app/` contains App Router pages, Server Actions, and Route Handlers.
+  `components/` contains shared UI.
+- `app/actions/` is the write side: authenticate, validate input, verify
+  ownership of related records, mutate Prisma, and revalidate affected routes.
+- `app/api/` handles reads, exports, checkout, and the payment webhook. Reuse
+  business rules from `lib/` instead of duplicating them in handlers. Return
+  explicit statuses for authentication, validation, payment-required, and row
+  limit failures.
+- `lib/domain/financial/` contains financial entities and value objects;
+  `lib/application/` coordinates use cases; `lib/infrastructure/` implements
+  Prisma repositories. Other `lib/` modules provide auth, billing, dashboard,
+  recurrence, import, pagination, and revalidation helpers.
+- `prisma/schema.prisma` is the data-model source of truth. Local SQLite uses
+  `DATABASE_URL=file:./dev.db`; migrations are in `prisma/migrations/`.
+- `auth.ts` configures NextAuth Credentials with JWT sessions. `proxy.ts`
+  protects routes by default, with only login, registration, NextAuth, static
+  assets, and the payment webhook public.
 
-- `app/page.tsx` and `app/api/dashboard` for dashboard behavior.
-- `app/actions/transactions.ts`, `app/actions/categories.ts`, `app/actions/recurrences.ts`, and `app/actions/goals.ts` for write-side patterns.
-- `auth.ts` and `proxy.ts` for authentication and route protection.
-- `lib/auth.ts` for `requireUser()` and related server authorization helpers.
-- `lib/validation.ts` for the project’s Zod and BRL/date parsing helpers.
-- `lib/dashboard.ts` and `lib/dashboard-summary.ts` for dashboard filters and totals.
-- `prisma/schema.prisma` for the domain model and ownership rules.
+## Key conventions
 
-This app is deliberately user-scoped. The domain is centered on `User -> FinancialAccount/Category/Transaction/RecurringTransaction/FinancialGoal`, and most mutations must validate the logged-in user and enforce `where: { userId: user.id }` before writing.
+- Persist money only as integer cents (`Int`). Parse BRL form values with
+  `parseBrazilianCents()` from `lib/validation.ts`; never persist decimal
+  currency values.
+- Parse civil `YYYY-MM-DD` form dates with `parseLocalDate()` to avoid timezone
+  drift. Validate form and API payloads with the shared Zod schemas before
+  database access.
+- Every user-data query and mutation must derive identity from the session via
+  `requireUser()`, `requirePaidUser()`, or `requireAdminUser()`. Include
+  `userId` in queries for the target record and every related account,
+  category, transaction, or goal; client-supplied IDs are not sufficient.
+- Use Server Actions for mutations. Use Prisma transactions when multiple
+  entities change together, especially goal contributions. Call
+  `revalidatePaths()` or `revalidatePath()` only after a successful mutation.
+- Dashboard balance is initial account balance plus transactions before the
+  selected period plus the selected period's net result. Preserve the
+  historical `occurredAt: { lt: start }` rule, shared period/account/category
+  filters, and the 10,000-row limit.
+- Recurrence generation must be idempotent and concurrency-safe: claim the
+  current occurrence before creating entries, retry Prisma `P2034` conflicts,
+  cap overdue generations, preserve month-end scheduling, and deactivate at
+  `endAt`.
+- Paid routes must enforce access on the server. Checkout does not grant
+  access: `/api/payments/webhook` validates the signature, fetches the provider
+  payment, checks the reference and amount, and only then sets `User.hasPaid`.
+  Do not expose provider internals or secrets; unexpected failures should be
+  handled with the route's generic error response.
+- The plan price is stored in `AppSettings.planPriceCents`. Admin access comes
+  from the `ADMIN` role or configured `ADMIN_EMAIL`; never hard-code admin
+  credentials.
+- Keep new route names, labels, and validation messages in Portuguese. Do not
+  commit `.env`, `prisma/dev.db`, SQLite sidecar files, password hashes,
+  sessions, or financial data.
 
-## Key repository conventions
+## Environment and deployment
 
-- Money is stored in integer cents, never as floating-point numbers.
-- Form inputs and API payloads should be sanitized with the shared Zod schemas and parsing helpers in `lib/validation.ts` before writing to the database.
-- `parseBrazilianCents()` handles values like `R$ 1.234,56` and returns integer cents; `parseLocalDate()` normalizes `YYYY-MM-DD` without timezone drift.
-- Server actions are the normal place for create/update/delete logic; do not put core mutation logic directly in client components.
-- Every mutation should check the authenticated user and ensure related records belong to that user before updating/deleting them.
-- Revalidate the affected route(s) after state changes with `revalidatePath(...)`.
-- Protect private app routes with the NextAuth middleware in `proxy.ts`; public routes are limited to login, cadastro, NextAuth endpoints, and static assets.
-- `app/api/*` routes should return explicit status codes for auth, validation, payment-required, and row-limit failures; unexpected failures should still integrate with Sentry without exposing secrets or provider internals.
-- Dashboard and export code should reuse the shared filter/range helpers instead of duplicating date logic.
-- Recurring transactions, goal contributions, and financial totals are sensitive business logic; follow the existing transaction patterns and ownership checks rather than introducing custom shortcuts.
-- The product UI and route names are Portuguese; keep validation messages and new feature names consistent with the existing app language.
+Use `.env.example` for `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`,
+`APP_URL`, Mercado Pago credentials, and `ADMIN_EMAIL`. In
+production, run `npm run db:deploy` before starting the app. SQLite requires a
+persistent volume and backups; otherwise configure a compatible external
+database through `DATABASE_URL`.
 
-## Engineering workflow and delivery discipline
+The workspace includes local `engenharia-local`, Sequential Thinking, and
+Context7 MCP servers in `.vscode/mcp.json`. Protected tokens must be entered
+through VS Code prompts and never committed.
 
-- Start from a concrete failure, bug, route, or behavior; do not open broad refactors before understanding the call path.
-- Keep the change set small and tied to a single objective: fix, feature, audit, or documentation update.
-- For business logic, validate the data contract first: user ownership, account/category validation, date parsing, money in cents, and revalidation after mutation.
-- Prefer targeted validation: specific Vitest file, route reproduction, or a focused typecheck; only escalate to the full suite when the change affects shared behavior.
-- When a fix changes data semantics, add or update test coverage in the closest relevant file rather than only patching the UI.
-- Capture the decision context in a short note when the change affects architecture, auth, billing, or dashboard correctness.
+## Engineering workflow
 
-## Recommended next engineering passes
+For code reviews, debugging, refactors, security, authorization, concurrency,
+validation, or other engineering changes, coordinate the available MCPs before
+editing: use `engenharia-local` to inspect and validate the repository, use
+Context7 for current framework/library documentation, and use
+`sequential-thinking` to test hypotheses and review tradeoffs. If a required server is disabled, stop and request reactivation
+rather than inventing results. Start from a
+concrete file, symbol, test, error, or reproducible behavior, make the smallest
+change that addresses it, and run the most specific validation immediately
+afterward.
 
-These are the highest-value follow-ups in this codebase today:
+## Files to read first
 
-- Audit the billing and payment flow end-to-end: webhook validation, signed payload verification, user upgrade state, and admin pricing safeguards.
-- Harden the recurrence engine with transaction-safe generation rules, overdue caps, and predictable `nextOccurrence` behavior under concurrency.
-- Re-check dashboard correctness against the `occurredAt: { lt: start }` historical rule and ensure totals remain consistent across accounts, categories, and date filters.
-- Expand the tests around validation and financial calculations to cover edge cases without relying on UI-only confidence.
-- Review route and permission boundaries around admin-only access and paid-user gating to keep features protected by the same server-side rules used elsewhere.
-
-## Session documentation and knowledge capture
-
-- Record what was inspected, the decision taken, the validation command executed, and the next recommended follow-up.
-- Keep that record in a session note for future agent resumes or manual handoff.
-- If an external knowledge base like Obsidian is available, synchronize the note there. If not, save the same note in the local session state and mention the limitation in the final summary.
-- This repository already has project-level AI instructions; keep follow-up notes aligned with those documents instead of inventing a separate process.
-
-## Local setup and environment
-
-- Start from `.env.example` and generate a unique `NEXTAUTH_SECRET` before running the app.
-- Local SQLite lives in `prisma/dev.db` and is configured via `DATABASE_URL="file:./dev.db"`.
-- In production or CI, run `npm run db:deploy` before starting the app and then `npm run db:generate` when needed.
-- The app expects `NEXTAUTH_URL`, `APP_URL`, and Mercado Pago credentials for checkout/webhook flows.
-- Do not commit `.env`, SQLite database files, password hashes, sessions, or financial data.
-
-## Key domain rules to preserve
-
-- `Transaction.cents` and `FinancialAccount.initialCents` are integers in cents.
-- Goal contributions are stored as linked transactions with `goalId`, and the goal balance and contribution row should be updated together in one transaction.
-- Recurrence processing must remain transactional and concurrency-safe: claim the current occurrence before creating generated entries, cap overdue generations, and deactivate at `endAt`.
-- Dashboard totals must include opening balances plus historical transactions before the selected period and the selected period’s net result, while preserving the historical `occurredAt: { lt: start }` constraint.
-- Payment-required routes are gated by the paid-user flow and the signed `/api/payments/webhook` endpoint; do not bypass the subscription checks.
-
-## Useful files to read first
-
-- `README.md` for local setup and deployment notes
-- `package.json` for the actual scripts used by this project
-- `prisma/schema.prisma` for the entity model and relationships
-- `proxy.ts` and `auth.ts` for route/user protection
-- `lib/validation.ts` for input parsing rules
-- `lib/dashboard.ts` and `lib/dashboard-summary.ts` for date/filter calculations
-- `app/actions/*.ts` for how mutations are implemented in this codebase
-
-This repo already includes a strong set of project-specific instructions in `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, and `.github/AGENTES-COORDENACAO.md`; keep changes consistent with those documents and the README rather than introducing unrelated patterns.
+For changes to the corresponding flows, start with `README.md`,
+`prisma/schema.prisma`, `lib/validation.ts`, `lib/auth.ts`, `lib/dashboard.ts`,
+`lib/dashboard-summary.ts`, the relevant `app/actions/*.ts`, `auth.ts`, and
+`proxy.ts`. Consult `.github/AGENTES-COORDENACAO.md` when multiple sessions work
+in the same repository.

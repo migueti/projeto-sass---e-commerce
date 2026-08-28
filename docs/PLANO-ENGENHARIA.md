@@ -45,7 +45,7 @@ Revisar operações que fazem `findFirst` seguido de `create` ou `delete`, mante
 ## Gate de cada mudança
 
 1. Formular uma hipótese falsificável a partir de um arquivo, símbolo, teste ou comportamento reproduzível.
-2. Consultar Sequential Thinking, Context7 e Obsidian conforme a instrução de engenharia do workspace.
+2. Consultar Sequential Thinking, Context7 e engenharia-local conforme a instrução de engenharia do workspace.
 3. Fazer a menor edição possível e adicionar teste antes de ampliar o escopo.
 4. Executar primeiro o teste focado; depois rodar `npm test`, `npm run typecheck` e `npm run lint` quando a alteração atravessar seus respectivos limites.
 5. Registrar riscos residuais e não misturar alterações não relacionadas.

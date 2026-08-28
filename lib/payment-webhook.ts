@@ -31,10 +31,14 @@ export function webhookSignatureIsValid(
   nowSeconds = Math.floor(Date.now() / 1000),
 ) {
   if (!secret || !signature || !requestId || !dataId) return false;
-  const values = Object.fromEntries(signature.split(",").map((part) => {
-    const [key, value] = part.trim().split("=", 2);
-    return [key, value];
-  }));
+  const values: Record<string, string> = {};
+  for (const part of signature.split(",")) {
+    const segments = part.trim().split("=");
+    const key = segments[0];
+    const value = segments[1];
+    if (!key || value === undefined || segments.length !== 2 || key in values) return false;
+    values[key] = value;
+  }
   if (!values.ts || !/^\d+$/.test(values.ts)) return false;
   const timestamp = Number(values.ts);
   if (!Number.isSafeInteger(timestamp) || Math.abs(nowSeconds - timestamp) > WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS || !values.v1 || !/^[a-f\d]{64}$/i.test(values.v1)) return false;

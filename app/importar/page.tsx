@@ -1,11 +1,18 @@
 import Link from "next/link";
 
+import { StatementImportForm } from "@/components/statement-import-form";
 import { requirePaidUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function ImportStatementPage() {
-  await requirePaidUser();
+  const user = await requirePaidUser();
+  const accounts = await prisma.financialAccount.findMany({
+    where: { userId: user.id },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
 
   return (
     <main className="content-wrap">
@@ -17,13 +24,11 @@ export default async function ImportStatementPage() {
         </div>
       </div>
       <section className="panel">
-        <form action="/api/statements/preview" method="post" encType="multipart/form-data" className="crud-form">
-          <label>
-            Extrato bancário em PDF, DOCX ou XLSX
-            <input name="file" type="file" accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx" required />
-          </label>
-          <button className="primary-button" type="submit">Analisar extrato</button>
-        </form>
+        {accounts.length === 0 ? (
+          <p className="form-error">Crie uma conta antes de importar lançamentos.</p>
+        ) : (
+          <StatementImportForm accounts={accounts} />
+        )}
         <p className="heading-copy">A análise cria apenas uma prévia. Nenhum lançamento é salvo automaticamente.</p>
         <Link className="text-button" href="/lancamentos">Voltar para lançamentos</Link>
       </section>

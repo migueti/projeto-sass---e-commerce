@@ -13,7 +13,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: { user: { findUnique: mocks.findUnique } },
 }));
 
-import { isAdminUser, requirePaidUser } from "@/lib/auth";
+import { isAdminUser, requirePaidApiUser, requirePaidUser } from "@/lib/auth";
 
 describe("requirePaidUser", () => {
   beforeEach(() => {
@@ -49,6 +49,19 @@ describe("requirePaidUser", () => {
 
     await expect(requirePaidUser()).rejects.toThrow("REDIRECT");
     expect(mocks.redirect).toHaveBeenCalledWith("/assinar");
+  });
+
+  it("rejects unpaid regular users in API flows", async () => {
+    process.env.ADMIN_EMAIL = "vinipedro629@gmail.com";
+    mocks.findUnique.mockResolvedValue({
+      id: "user-1",
+      email: "user@example.com",
+      role: "USER",
+      hasPaid: false,
+    });
+
+    await expect(requirePaidApiUser()).rejects.toThrow("PAYMENT_REQUIRED");
+    expect(mocks.redirect).not.toHaveBeenCalled();
   });
 
   it("normalizes the configured admin email comparison", () => {

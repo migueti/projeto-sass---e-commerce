@@ -1,7 +1,6 @@
 "use server";
 
 import { Prisma } from "@prisma/client";
-import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
 
 import { requirePaidUser } from "@/lib/auth";
@@ -33,7 +32,6 @@ export async function createCategory(formData: FormData) {
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")
       throw new Error("Você já possui uma categoria com esse nome.");
-    Sentry.captureException(error);
     throw error;
   }
   revalidatePaths("/categorias", "/");

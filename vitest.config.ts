@@ -7,7 +7,7 @@ const rootDir = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   test: {
-    exclude: ["node_modules", "Mercado-Pago-main principal/**"],
+    exclude: ["node_modules", ".next/**", "Mercado-Pago-main principal/**"],
   },
   resolve: {
     alias: {

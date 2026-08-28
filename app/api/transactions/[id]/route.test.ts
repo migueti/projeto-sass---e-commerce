@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => {
   };
 
   return {
-    requireUser: vi.fn(),
+    requirePaidApiUser: vi.fn(),
     transactionClient,
     prisma: {
       $transaction: vi.fn(async (callback: (client: typeof transactionClient) => unknown) =>
@@ -23,10 +23,8 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("@/lib/auth", () => ({ requireUser: mocks.requireUser }));
+vi.mock("@/lib/auth", () => ({ requirePaidApiUser: mocks.requirePaidApiUser }));
 vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }));
-vi.mock("@sentry/nextjs", () => ({ captureException: vi.fn() }));
-
 import { DELETE } from "@/app/api/transactions/[id]/route";
 
 describe("DELETE /api/transactions/[id]", () => {
@@ -35,7 +33,7 @@ describe("DELETE /api/transactions/[id]", () => {
   });
 
   it("reverts a linked goal contribution before deleting it", async () => {
-    mocks.requireUser.mockResolvedValue({ id: "user-1", hasPaid: true });
+    mocks.requirePaidApiUser.mockResolvedValue({ id: "user-1", hasPaid: true });
     mocks.transactionClient.transaction.findFirst.mockResolvedValue({
       cents: 10_000,
       goalId: "goal-1",
@@ -63,7 +61,7 @@ describe("DELETE /api/transactions/[id]", () => {
   });
 
   it("does not delete a transaction that is not owned by the user", async () => {
-    mocks.requireUser.mockResolvedValue({ id: "user-1", hasPaid: true });
+    mocks.requirePaidApiUser.mockResolvedValue({ id: "user-1", hasPaid: true });
     mocks.transactionClient.transaction.findFirst.mockResolvedValue(null);
 
     const response = await DELETE(new Request("http://localhost"), {
@@ -81,5 +79,17 @@ describe("DELETE /api/transactions/[id]", () => {
       select: { cents: true, goalId: true },
     });
     expect(mocks.transactionClient.transaction.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("returns payment required instead of redirecting unpaid users", async () => {
+    mocks.requirePaidApiUser.mockRejectedValue(new Error("PAYMENT_REQUIRED"));
+
+    const response = await DELETE(new Request("http://localhost"), {
+      params: Promise.resolve({ id: "transaction-1" }),
+    });
+
+    expect(response.status).toBe(402);
+    expect(await response.json()).toEqual({ error: "Pagamento necessário." });
+    expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
   });
 });

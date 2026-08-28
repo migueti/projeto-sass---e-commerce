@@ -33,7 +33,10 @@ export const transactionSchema = z.object({
   type: z.enum(["INCOME", "EXPENSE"]),
   accountId: z.string().min(1, "Selecione uma conta."),
   categoryId: z.string().optional(),
-  occurredAt: z.string().min(1, "Informe uma data."),
+  occurredAt: z
+    .string()
+    .min(1, "Informe uma data.")
+    .refine((value) => parseLocalDate(value) !== null, "Informe uma data válida."),
   notes: z
     .string()
     .trim()

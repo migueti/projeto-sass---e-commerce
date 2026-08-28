@@ -24,8 +24,6 @@ const mocks = vi.hoisted(() => {
 
 vi.mock("@/lib/mercado-pago", () => ({ getMercadoPagoPayment: mocks.getMercadoPagoPayment }));
 vi.mock("@/lib/prisma", () => ({ prisma: mocks.prisma }));
-vi.mock("@sentry/nextjs", () => ({ captureException: vi.fn() }));
-
 import { POST } from "@/app/api/payments/webhook/route";
 
 describe("POST /api/payments/webhook", () => {
@@ -48,7 +46,12 @@ describe("POST /api/payments/webhook", () => {
       transaction_amount: 29.9,
       status: "rejected",
     });
-    mocks.transactionClient.payment.findUnique.mockResolvedValue({ status: "APPROVED" });
+    mocks.transactionClient.payment.findUnique.mockResolvedValue({
+      status: "APPROVED",
+      userId: "user-123",
+      externalReference,
+      amountCents: 2_990,
+    });
 
     const response = await POST(new Request(
       `http://localhost/api/payments/webhook?data.id=${dataId}`,
@@ -99,6 +102,37 @@ describe("POST /api/payments/webhook", () => {
       create: expect.objectContaining({ status: "PENDING", approvedAt: null }),
       update: { status: "PENDING", approvedAt: null },
     }));
+    expect(mocks.transactionClient.user.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("ignores a provider payment whose stored identity does not match", async () => {
+    const dataId = "payment-reused";
+    const requestId = "request-reused";
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const externalReference = "nuvem:user:user-123:price:2990:checkout-reused";
+    const manifest = `id:${dataId};request-id:${requestId};ts:${timestamp};`;
+    const hash = createHmac("sha256", "webhook-secret").update(manifest).digest("hex");
+
+    mocks.getMercadoPagoPayment.mockResolvedValue({
+      id: dataId,
+      external_reference: externalReference,
+      transaction_amount: 29.9,
+      status: "approved",
+    });
+    mocks.transactionClient.payment.findUnique.mockResolvedValue({
+      status: "PENDING",
+      userId: "another-user",
+      externalReference: "nuvem:user:another-user:price:2990:checkout-other",
+      amountCents: 2_990,
+    });
+
+    const response = await POST(new Request(
+      `http://localhost/api/payments/webhook?data.id=${dataId}`,
+      { headers: { "x-request-id": requestId, "x-signature": `ts=${timestamp},v1=${hash}` } },
+    ));
+
+    expect(response.status).toBe(200);
+    expect(mocks.transactionClient.payment.upsert).not.toHaveBeenCalled();
     expect(mocks.transactionClient.user.updateMany).not.toHaveBeenCalled();
   });
 });
