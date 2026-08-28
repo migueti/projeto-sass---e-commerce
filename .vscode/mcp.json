@@ -1,30 +1,4 @@
 {
-	"inputs": [
-		{
-			"id": "CONTEXT7_API_KEY",
-			"type": "promptString",
-			"description": "API key for authentication",
-			"password": true
-		},
-		{
-			"id": "token",
-			"type": "promptString",
-			"description": "",
-			"password": true
-		},
-		{
-			"id": "PLUGGY_CLIENT_ID",
-			"type": "promptString",
-			"description": "Pluggy Client ID",
-			"password": true
-		},
-		{
-			"id": "PLUGGY_CLIENT_SECRET",
-			"type": "promptString",
-			"description": "Pluggy Client Secret",
-			"password": true
-		}
-	],
 	"servers": {
 		"engenharia-local": {
 			"command": "node",
@@ -55,13 +29,56 @@
 		},
 		"pluggy": {
 			"command": "npm",
-			"args": ["--prefix", "pluggy mcp", "run", "dev"],
+			"args": [
+				"--prefix",
+				"pluggy mcp",
+				"run",
+				"dev"
+			],
 			"env": {
 				"PLUGGY_CLIENT_ID": "${input:PLUGGY_CLIENT_ID}",
 				"PLUGGY_CLIENT_SECRET": "${input:PLUGGY_CLIENT_SECRET}",
 				"PLUGGY_API_BASE": "${env:PLUGGY_API_BASE}"
 			},
 			"type": "stdio"
+		},
+		"io.github.pgEdge/postgres-mcp": {
+			"type": "stdio",
+			"command": "docker",
+			"args": [
+				"run",
+				"-i",
+				"--rm",
+				"ghcr.io/pgedge/postgres-mcp:latest"
+			],
+			"gallery": "https://api.mcp.github.com",
+			"version": "1.0.0"
 		}
-	}
+	},
+	"inputs": [
+		{
+			"id": "CONTEXT7_API_KEY",
+			"type": "promptString",
+			"description": "API key for authentication",
+			"password": true
+		},
+		{
+			"id": "token",
+			"type": "promptString",
+			"description": "",
+			"password": true
+		},
+		{
+			"id": "PLUGGY_CLIENT_ID",
+			"type": "promptString",
+			"description": "Pluggy Client ID",
+			"password": true
+		},
+		{
+			"id": "PLUGGY_CLIENT_SECRET",
+			"type": "promptString",
+			"description": "Pluggy Client Secret",
+			"password": true
+		}
+	]
 }
