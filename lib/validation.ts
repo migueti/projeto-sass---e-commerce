@@ -52,13 +52,13 @@ export function parseBrazilianCents(
   const match = /^(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,2}))?$/.exec(raw);
   if (!match) return null;
 
-  const normalized = `${match[1].replace(/\./g, "")}.${match[2] ?? "0"}`;
-  const amount = Number(normalized);
-  if (!Number.isFinite(amount) || amount < 0 || (!allowZero && amount === 0))
-    return null;
+  const wholeCents = BigInt(match[1].replace(/\./g, "")) * BigInt(100);
+  const fractionalCents = BigInt((match[2] ?? "").padEnd(2, "0") || "0");
+  const cents = wholeCents + fractionalCents;
+  const maxCents = BigInt(2_147_483_647);
 
-  const cents = Math.round(amount * 100);
-  return cents <= 2_147_483_647 ? cents : null;
+  if (cents === BigInt(0) && !allowZero) return null;
+  return cents <= maxCents ? Number(cents) : null;
 }
 
 export function parseLocalDate(value: string) {

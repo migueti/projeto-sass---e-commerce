@@ -52,6 +52,7 @@ describe("DELETE /api/transactions/[id]", () => {
     });
 
     expect(response.status).toBe(204);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store, max-age=0");
     expect(mocks.transactionClient.financialGoal.updateMany).toHaveBeenCalledWith({
       where: { id: "goal-1", userId: "user-1", savedCents: 10_000 },
       data: { savedCents: { decrement: 10_000 }, status: "ACTIVE" },
@@ -70,6 +71,7 @@ describe("DELETE /api/transactions/[id]", () => {
     });
 
     expect(response.status).toBe(404);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store, max-age=0");
     expect(await response.json()).toEqual({ error: "Lançamento não encontrado." });
     expect(mocks.transactionClient.transaction.findFirst).toHaveBeenCalledWith({
       where: {

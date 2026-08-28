@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "mcp:check": "tsx --check mcp/server.ts",
+    "mcp:server": "tsx mcp/server.ts",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --configLoader runner",
@@ -20,15 +22,18 @@
     "@upstash/context7-tools-ai-sdk": "^0.2.5",
     "bcryptjs": "^3.0.3",
     "exceljs": "^4.4.0",
+    "jszip": "^3.10.1",
     "mercadopago": "^3.5.1",
     "next": "16.3.3",
     "next-auth": "^4.24.15",
+    "pdf-parse": "^2.4.5",
     "pdfkit": "^0.20.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@modelcontextprotocol/server": "^2.0.0-alpha.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pdfkit": "^0.17.6",
@@ -38,6 +43,7 @@
     "eslint-config-next": "16.3.3",
     "prisma": "^6.19.0",
     "tailwindcss": "^4",
+    "tsx": "^4.19.3",
     "typescript": "^5",
     "vitest": "^4.1.11"
   }

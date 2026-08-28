@@ -31,6 +31,7 @@ const nextConfig: NextConfig = {
         "*.app.github.dev",
         ...configuredServerActionOrigins,
       ],
+      bodySizeLimit: "10mb",
     },
   },
 };

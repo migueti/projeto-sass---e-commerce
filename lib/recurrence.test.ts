@@ -76,4 +76,16 @@ describe("withTransactionRetry", () => {
     expect(isRetryableTransactionConflict(error)).toBe(false);
     expect(sleep).toHaveBeenCalledTimes(2);
   });
+
+  it("accepts retry limits and backoff values for high-contention flows", async () => {
+    const conflict = Object.assign(new Error("write conflict"), { code: "P2034" });
+    const operation = vi.fn().mockRejectedValue(conflict);
+    const sleep = vi.fn().mockResolvedValue(undefined);
+
+    await expect(
+      withTransactionRetry(operation, sleep, { maxAttempts: 2, initialDelayMs: 100 }),
+    ).rejects.toBe(conflict);
+    expect(operation).toHaveBeenCalledTimes(2);
+    expect(sleep).toHaveBeenCalledWith(100);
+  });
 });

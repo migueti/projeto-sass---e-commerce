@@ -44,4 +44,15 @@ describe("Mercado Pago checkout preference", () => {
       quantity: 1,
     });
   });
+
+  it("rejects invalid prices before building the provider payload", () => {
+    expect(() => buildCheckoutPreferenceBody("cliente@example.com", "https://nuvem.example.com", "reference", 0))
+      .toThrow("MERCADOPAGO_INVALID_PRICE");
+    expect(() => buildCheckoutPreferenceBody("cliente@example.com", "https://nuvem.example.com", "reference", 29.9))
+      .toThrow("MERCADOPAGO_INVALID_PRICE");
+    expect(() => buildCheckoutPreferenceBody("cliente@example.com", "https://nuvem.example.com", "reference", -100))
+      .toThrow("MERCADOPAGO_INVALID_PRICE");
+    expect(() => buildCheckoutPreferenceBody("cliente@example.com", "https://nuvem.example.com", "reference", 2_147_483_648))
+      .toThrow("MERCADOPAGO_INVALID_PRICE");
+  });
 });
