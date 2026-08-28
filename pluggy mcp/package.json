@@ -23,6 +23,8 @@
     "prepare": "husky",
     "commit": "cz",
     "build": "tsc --noEmit false",
+    "dev": "npm run build && npm run start",
+    "prestart": "npm run build",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "bun test",

@@ -43,14 +43,14 @@ Adicione ao `claude_desktop_config.json`:
 
 Mesma configuração em `.cursor/mcp.json` ou no JSON de MCP do VS Code.
 
-Para usar a cópia local deste repositório no VS Code, compile o pacote e adicione
-ao arquivo de MCP:
+Para usar a cópia local deste repositório no VS Code, adicione ao arquivo de MCP
+e deixe o script `dev` compilar o pacote antes de iniciá-lo:
 
 ```json
 {
   "pluggy": {
-    "command": "node",
-    "args": ["pluggy mcp/dist/index.js"],
+    "command": "npm",
+    "args": ["--prefix", "pluggy mcp", "run", "dev"],
     "env": {
       "PLUGGY_CLIENT_ID": "${env:PLUGGY_CLIENT_ID}",
       "PLUGGY_CLIENT_SECRET": "${env:PLUGGY_CLIENT_SECRET}",
