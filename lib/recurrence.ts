@@ -1,5 +1,27 @@
 export type RecurrenceFrequency = "WEEKLY" | "MONTHLY" | "YEARLY";
 
+const MAX_TRANSACTION_RETRIES = 3;
+
+export function isRetryableTransactionConflict(error: unknown) {
+  return error instanceof Error && "code" in error && error.code === "P2034";
+}
+
+export async function withTransactionRetry<T>(
+  operation: () => Promise<T>,
+  sleep: (milliseconds: number) => Promise<void> = (milliseconds) =>
+    new Promise((resolve) => setTimeout(resolve, milliseconds)),
+) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!isRetryableTransactionConflict(error) || attempt >= MAX_TRANSACTION_RETRIES - 1)
+        throw error;
+      await sleep(2 ** attempt * 25);
+    }
+  }
+}
+
 export function getNextRecurrenceDate(
   date: Date,
   frequency: RecurrenceFrequency,

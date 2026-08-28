@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { getNextRecurrenceDate } from "@/lib/recurrence";
+import {
+  getNextRecurrenceDate,
+  isRetryableTransactionConflict,
+  withTransactionRetry,
+} from "@/lib/recurrence";
 
 const date = (value: string) => new Date(`${value}T12:00:00.000Z`);
 
@@ -46,5 +50,30 @@ describe("getNextRecurrenceDate", () => {
     expect(
       getNextRecurrenceDate(date("2029-02-28"), "YEARLY", 29),
     ).toEqual(date("2030-02-28"));
+  });
+});
+
+describe("withTransactionRetry", () => {
+  it("retries transaction conflicts and stops after success", async () => {
+    const conflict = Object.assign(new Error("write conflict"), { code: "P2034" });
+    const operation = vi.fn()
+      .mockRejectedValueOnce(conflict)
+      .mockResolvedValue("ok");
+    const sleep = vi.fn().mockResolvedValue(undefined);
+
+    await expect(withTransactionRetry(operation, sleep)).resolves.toBe("ok");
+    expect(operation).toHaveBeenCalledTimes(2);
+    expect(sleep).toHaveBeenCalledWith(25);
+  });
+
+  it("does not retry unrelated errors or exceed the retry limit", async () => {
+    const error = new Error("unexpected");
+    const conflict = Object.assign(new Error("write conflict"), { code: "P2034" });
+    const sleep = vi.fn().mockResolvedValue(undefined);
+
+    await expect(withTransactionRetry(() => Promise.reject(error), sleep)).rejects.toBe(error);
+    await expect(withTransactionRetry(() => Promise.reject(conflict), sleep)).rejects.toBe(conflict);
+    expect(isRetryableTransactionConflict(error)).toBe(false);
+    expect(sleep).toHaveBeenCalledTimes(2);
   });
 });

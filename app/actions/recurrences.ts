@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { requirePaidUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getNextRecurrenceDate } from "@/lib/recurrence";
+import { getNextRecurrenceDate, withTransactionRetry } from "@/lib/recurrence";
 import { parseBrazilianCents, parseLocalDate } from "@/lib/validation";
 import { revalidatePaths } from "@/lib/revalidation";
 
@@ -96,32 +96,32 @@ export async function processRecurrence(id: string) {
   const shouldFinish = Boolean(
     recurrence.endAt && nextOccurrence > recurrence.endAt,
   );
-  const updated = await prisma.$transaction(async (transaction) => {
-    const claimed = await transaction.recurringTransaction.updateMany({
-      where: {
-        id,
-        userId: user.id,
-        active: true,
-        nextOccurrence: recurrence.nextOccurrence,
-      },
-      data: shouldFinish ? { active: false } : { nextOccurrence },
-    });
-    if (claimed.count !== 1) return false;
-    if (occurrences.length) {
-      await transaction.transaction.createMany({
-        data: occurrences.map((occurredAt) => ({
+  const updated = await withTransactionRetry(() => prisma.$transaction(async (transaction) => {
+      const claimed = await transaction.recurringTransaction.updateMany({
+        where: {
+          id,
           userId: user.id,
-          accountId: recurrence.accountId,
-          categoryId: recurrence.categoryId,
-          description: recurrence.description,
-          cents: recurrence.cents,
-          type: recurrence.type,
-          occurredAt,
-        })),
+          active: true,
+          nextOccurrence: recurrence.nextOccurrence,
+        },
+        data: shouldFinish ? { active: false } : { nextOccurrence },
       });
-    }
-    return true;
-  });
+      if (claimed.count !== 1) return false;
+      if (occurrences.length) {
+        await transaction.transaction.createMany({
+          data: occurrences.map((occurredAt) => ({
+            userId: user.id,
+            accountId: recurrence.accountId,
+            categoryId: recurrence.categoryId,
+            description: recurrence.description,
+            cents: recurrence.cents,
+            type: recurrence.type,
+            occurredAt,
+          })),
+        });
+      }
+      return true;
+    }));
   if (!updated) throw new Error("A recorrência já foi processada.");
   revalidatePaths("/recorrencias", "/lancamentos", "/contas", "/");
 }
