@@ -1,7 +1,12 @@
 "use client";
 
-import { PluggyConnect } from "react-pluggy-connect";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+
+const PluggyConnect = dynamic(
+  () => import("react-pluggy-connect").then((module) => module.PluggyConnect),
+  { ssr: false },
+);
 
 export function OpenFinanceConnect() {
   const [connectToken, setConnectToken] = useState("");

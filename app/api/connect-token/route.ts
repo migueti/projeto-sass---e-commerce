@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { requirePaidApiUser } from "@/lib/auth";
+import { isAdminUser, requireUser } from "@/lib/auth";
 import { PRIVATE_NO_STORE_HEADERS } from "@/lib/http";
 import { createPluggyConnectToken } from "@/lib/pluggy";
 
@@ -9,7 +9,9 @@ export const dynamic = "force-dynamic";
 
 export async function POST() {
   try {
-    const user = await requirePaidApiUser();
+    const user = await requireUser();
+    if (!user.hasPaid && !isAdminUser(user))
+      return NextResponse.json({ error: "É necessário ativar o acesso antes de conectar uma conta." }, { status: 402, headers: PRIVATE_NO_STORE_HEADERS });
     const connectToken = await createPluggyConnectToken(user.id);
     return NextResponse.json({ accessToken: connectToken.accessToken }, { headers: PRIVATE_NO_STORE_HEADERS });
   } catch (error) {

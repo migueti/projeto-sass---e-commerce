@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/auth", () => ({ requireAdminUser: mocks.requireAdminUser }));
 vi.mock("@/lib/billing", () => ({ getPlanPriceCents: mocks.getPlanPriceCents }));
 vi.mock("@/app/admin/price-form", () => ({ PriceForm: () => null }));
+vi.mock("@/components/admin-pluggy-panel", () => ({ AdminPluggyPanel: () => null }));
 vi.mock("next/navigation", () => ({
   notFound: mocks.notFound,
   redirect: mocks.redirect,

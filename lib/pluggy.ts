@@ -1,4 +1,4 @@
-import Pluggy from "pluggy-js";
+import Pluggy, { type Connector } from "pluggy-js";
 
 const DEFAULT_BASE_URL = "https://api.pluggy.ai";
 const API_KEY_MIN_TTL_MS = 60_000;
@@ -9,6 +9,20 @@ function requiredEnvironmentValue(name: "PLUGGY_CLIENT_ID" | "PLUGGY_CLIENT_SECR
   const value = process.env[name]?.trim();
   if (!value) throw new Error("PLUGGY_NOT_CONFIGURED");
   return value;
+}
+
+export function getPluggyWebhookUrl() {
+  const value = process.env.PLUGGY_WEBHOOK_URL?.trim();
+  if (!value) return undefined;
+
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || url.hostname === "example.com" || url.hostname.endsWith(".example.com"))
+      return undefined;
+    return url.toString();
+  } catch {
+    return undefined;
+  }
 }
 
 async function getApiKey() {
@@ -39,6 +53,21 @@ export async function createPluggyConnectToken(clientUserId: string) {
   const client = new Pluggy(await getApiKey(), process.env.PLUGGY_API_BASE ?? DEFAULT_BASE_URL);
   return client.createConnectToken(undefined, {
     clientUserId,
-    webhookUrl: process.env.PLUGGY_WEBHOOK_URL?.trim() || undefined,
+    webhookUrl: getPluggyWebhookUrl(),
+    avoidDuplicates: true,
   });
+}
+
+export async function listPluggyConnectors() {
+  const client = new Pluggy(await getApiKey(), process.env.PLUGGY_API_BASE ?? DEFAULT_BASE_URL);
+  const response = await client.fetchConnectors(undefined, true);
+  return response.results.map((connector: Connector) => ({
+    id: connector.id,
+    name: connector.name,
+    type: connector.type,
+    country: connector.country,
+    isSandbox: connector.isSandbox,
+    health: connector.health?.status ?? "UNKNOWN",
+    supportsPaymentInitiation: connector.supportsPaymentInitiation,
+  }));
 }
