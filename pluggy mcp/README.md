@@ -17,7 +17,6 @@ bun install
 ### Via npx (recomendado)
 
 ```bash
-```bash
 npx @gu-does-packages/pluggy-mcp
 ```
 
@@ -43,6 +42,23 @@ Adicione ao `claude_desktop_config.json`:
 ### Cursor / VS Code
 
 Mesma configuração em `.cursor/mcp.json` ou no JSON de MCP do VS Code.
+
+Para usar a cópia local deste repositório no VS Code, compile o pacote e adicione
+ao arquivo de MCP:
+
+```json
+{
+  "pluggy": {
+    "command": "node",
+    "args": ["pluggy mcp/dist/index.js"],
+    "env": {
+      "PLUGGY_CLIENT_ID": "${env:PLUGGY_CLIENT_ID}",
+      "PLUGGY_CLIENT_SECRET": "${env:PLUGGY_CLIENT_SECRET}",
+      "PLUGGY_API_BASE": "${env:PLUGGY_API_BASE}"
+    }
+  }
+}
+```
 
 ## Autenticação
 

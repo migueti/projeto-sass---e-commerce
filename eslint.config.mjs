@@ -6,6 +6,7 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   // Override default ignores of eslint-config-next.
+  globalIgnores(["pluggy mcp/**", "pluggy-client*.ts", "tools*.ts", "index*.ts"]),
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",

@@ -2,6 +2,7 @@ import { requirePaidUser } from "@/lib/auth";
 import { summarizeAccountTransactions } from "@/lib/accounts";
 import { prisma } from "@/lib/prisma";
 import { AccountForm } from "@/components/account-form";
+import { OpenFinanceConnect } from "@/components/open-finance-connect";
 
 const money = (cents: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
@@ -75,6 +76,11 @@ export default async function AccountsPage() {
               <p className="heading-copy">Adicione sua primeira conta.</p>
             )}
           </div>
+        </section>
+        <section className="panel">
+          <h3>Conectar conta bancária</h3>
+          <p className="heading-copy">Use o Open Finance para conectar uma instituição com segurança.</p>
+          <OpenFinanceConnect />
         </section>
       </div>
     </main>

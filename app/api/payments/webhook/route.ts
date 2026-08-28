@@ -8,23 +8,25 @@ import { withTransactionRetry } from "@/lib/recurrence";
 
 export const runtime = "nodejs";
 
+const WEBHOOK_NO_STORE_HEADERS = { "Cache-Control": "no-store" } as const;
+
 export async function POST(request: Request) {
   try {
     const url = new URL(request.url);
     const dataId = url.searchParams.get("data.id") ?? url.searchParams.get("id") ?? "";
     if (!webhookSignatureIsValid(request.headers.get("x-signature"), request.headers.get("x-request-id"), dataId))
-      return NextResponse.json({ error: "Webhook não autorizado." }, { status: 401 });
+      return NextResponse.json({ error: "Webhook não autorizado." }, { status: 401, headers: WEBHOOK_NO_STORE_HEADERS });
 
     let payment;
     try {
       payment = await getMercadoPagoPayment(dataId);
     } catch (error) {
-      if (error instanceof MPNotFoundError) return NextResponse.json({ received: true });
+      if (error instanceof MPNotFoundError) return NextResponse.json({ received: true }, { headers: WEBHOOK_NO_STORE_HEADERS });
       throw error;
     }
     const userId = userIdFromExternalReference(payment.external_reference);
     const amountCents = paymentAmountToCents(payment.transaction_amount);
-    if (!userId || amountCents === null || amountCents !== priceFromExternalReference(payment.external_reference)) return NextResponse.json({ received: true });
+    if (!userId || amountCents === null || amountCents !== priceFromExternalReference(payment.external_reference)) return NextResponse.json({ received: true }, { headers: WEBHOOK_NO_STORE_HEADERS });
     const status = paymentStatusFromProvider(payment.status);
 
     await withTransactionRetry(() => prisma.$transaction(async (transaction) => {
@@ -60,8 +62,8 @@ export async function POST(request: Request) {
         await transaction.user.updateMany({ where: { id: userId }, data: { hasPaid: true } });
       }
     }));
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ received: true }, { headers: WEBHOOK_NO_STORE_HEADERS });
   } catch {
-    return NextResponse.json({ error: "Não foi possível processar o webhook." }, { status: 500 });
+    return NextResponse.json({ error: "Não foi possível processar o webhook." }, { status: 500, headers: WEBHOOK_NO_STORE_HEADERS });
   }
 }

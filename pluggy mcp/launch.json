@@ -1,0 +1,39 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug MCP Server",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "src/index.ts"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PLUGGY_CLIENT_ID": "${input:pluggyClientId}",
+        "PLUGGY_CLIENT_SECRET": "${input:pluggyClientSecret}"
+      },
+      "console": "internalConsole"
+    },
+    {
+      "name": "Debug Tests",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["test"],
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "pluggyClientId",
+      "type": "promptString",
+      "description": "PLUGGY_CLIENT_ID"
+    },
+    {
+      "id": "pluggyClientSecret",
+      "type": "promptString",
+      "description": "PLUGGY_CLIENT_SECRET"
+    }
+  ]
+}

@@ -59,6 +59,7 @@ describe("POST /api/payments/webhook", () => {
     ));
 
     expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(mocks.transactionClient.payment.upsert).not.toHaveBeenCalled();
     expect(mocks.transactionClient.user.updateMany).not.toHaveBeenCalled();
   });
@@ -71,6 +72,7 @@ describe("POST /api/payments/webhook", () => {
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: "Webhook não autorizado." });
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(mocks.getMercadoPagoPayment).not.toHaveBeenCalled();
     expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
   });

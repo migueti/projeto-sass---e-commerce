@@ -1,0 +1,26 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "MCP Inspector",
+      "type": "shell",
+      "command": "bun run inspect",
+      "problemMatcher": [],
+      "group": "none"
+    },
+    {
+      "label": "Build",
+      "type": "shell",
+      "command": "bun run build",
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Test",
+      "type": "shell",
+      "command": "bun test",
+      "problemMatcher": [],
+      "group": "test"
+    }
+  ]
+}

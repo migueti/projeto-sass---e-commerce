@@ -1,0 +1,70 @@
+{
+  "name": "@gu-does-packages/pluggy-mcp",
+  "version": "0.1.1",
+  "description": "MCP server for Pluggy — Open Finance Brasil aggregator (ITP/TPP)",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "pluggy-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gu-does-git/pluggy-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gu-does-git/pluggy-mcp/issues"
+  },
+  "homepage": "https://github.com/gu-does-git/pluggy-mcp#readme",
+  "scripts": {
+    "prepare": "husky",
+    "commit": "cz",
+    "build": "tsc --noEmit false",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "inspect": "npx @modelcontextprotocol/inspector node dist/index.js",
+    "secretlint": "secretlint",
+    "commitlint": "commitlint",
+    "devmoji": "devmoji"
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
+    "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",
+    "@types/bun": "latest",
+    "@types/node": "^25.9.2",
+    "commitizen": "^4.3.1",
+    "cz-conventional-changelog": "^3.3.0",
+    "devmoji": "^2.3.0",
+    "husky": "^9.1.7",
+    "secretlint": "^13.0.2",
+    "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "typescript": "^6.0.3"
+  },
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "pluggy",
+    "open-finance",
+    "brazil",
+    "banking",
+    "aggregator",
+    "ofb",
+    "tpp"
+  ]
+}
