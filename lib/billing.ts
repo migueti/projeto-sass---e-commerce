@@ -4,12 +4,15 @@ const DEFAULT_PLAN_PRICE_CENTS = 2990;
 const MAX_PLAN_PRICE_CENTS = 2_147_483_647;
 
 export function initialPlanPriceCents(value = process.env.NUVEM_PLAN_PRICE) {
-  const configured = Number(value ?? "");
-  if (!Number.isFinite(configured) || configured <= 0) return DEFAULT_PLAN_PRICE_CENTS;
+  const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(value?.trim() ?? "");
+  if (!match) return DEFAULT_PLAN_PRICE_CENTS;
 
-  const cents = Math.round(configured * 100);
-  return cents > 0 && cents <= MAX_PLAN_PRICE_CENTS
-    ? cents
+  const cents =
+    BigInt(match[1]) * BigInt(100) +
+    BigInt((match[2] ?? "").padEnd(2, "0") || "0");
+  const maxCents = BigInt(MAX_PLAN_PRICE_CENTS);
+  return cents > BigInt(0) && cents <= maxCents
+    ? Number(cents)
     : DEFAULT_PLAN_PRICE_CENTS;
 }
 

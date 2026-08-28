@@ -42,6 +42,17 @@ describe("payment webhook", () => {
     expect(webhookSignatureIsValid(signature, requestId, dataId, secret, 1709999699)).toBe(false);
   });
 
+  it("rejects non-decimal webhook timestamps", () => {
+    const secret = "webhook-secret";
+    const dataId = "payment-123";
+    const requestId = "request-456";
+    const timestamp = "0x65e9c680";
+    const manifest = `id:${dataId};request-id:${requestId};ts:${timestamp};`;
+    const hash = createHmac("sha256", secret).update(manifest).digest("hex");
+
+    expect(webhookSignatureIsValid(`ts=${timestamp},v1=${hash}`, requestId, dataId, secret)).toBe(false);
+  });
+
   it("extracts only the expected user reference format", () => {
     expect(userIdFromExternalReference("nuvem:user:user-123:price:2990:checkout-456")).toBe("user-123");
     expect(priceFromExternalReference("nuvem:user:user-123:price:2990:checkout-456")).toBe(2990);

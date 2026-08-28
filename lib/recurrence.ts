@@ -1,6 +1,12 @@
 export type RecurrenceFrequency = "WEEKLY" | "MONTHLY" | "YEARLY";
 
 const MAX_TRANSACTION_RETRIES = 3;
+const DEFAULT_RETRY_DELAY_MS = 25;
+
+export type TransactionRetryOptions = {
+  maxAttempts?: number;
+  initialDelayMs?: number;
+};
 
 export function isRetryableTransactionConflict(error: unknown) {
   return error instanceof Error && "code" in error && error.code === "P2034";
@@ -10,14 +16,22 @@ export async function withTransactionRetry<T>(
   operation: () => Promise<T>,
   sleep: (milliseconds: number) => Promise<void> = (milliseconds) =>
     new Promise((resolve) => setTimeout(resolve, milliseconds)),
+  options: TransactionRetryOptions = {},
 ) {
+  const maxAttempts = options.maxAttempts ?? MAX_TRANSACTION_RETRIES;
+  const initialDelayMs = options.initialDelayMs ?? DEFAULT_RETRY_DELAY_MS;
+  if (!Number.isInteger(maxAttempts) || maxAttempts < 1)
+    throw new Error("maxAttempts deve ser um inteiro positivo.");
+  if (!Number.isFinite(initialDelayMs) || initialDelayMs < 0)
+    throw new Error("initialDelayMs deve ser um número não negativo.");
+
   for (let attempt = 0; ; attempt += 1) {
     try {
       return await operation();
     } catch (error) {
-      if (!isRetryableTransactionConflict(error) || attempt >= MAX_TRANSACTION_RETRIES - 1)
+      if (!isRetryableTransactionConflict(error) || attempt >= maxAttempts - 1)
         throw error;
-      await sleep(2 ** attempt * 25);
+      await sleep(2 ** attempt * initialDelayMs);
     }
   }
 }

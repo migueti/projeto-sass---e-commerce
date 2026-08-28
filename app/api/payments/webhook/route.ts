@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { getMercadoPagoPayment } from "@/lib/mercado-pago";
 import { prisma } from "@/lib/prisma";
 import { paymentStatusFromProvider, priceFromExternalReference, userIdFromExternalReference, webhookSignatureIsValid } from "@/lib/payment-webhook";
+import { withTransactionRetry } from "@/lib/recurrence";
 
 export const runtime = "nodejs";
 
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
     if (!userId || amountCents !== priceFromExternalReference(payment.external_reference)) return NextResponse.json({ received: true });
     const status = paymentStatusFromProvider(payment.status);
 
-    await prisma.$transaction(async (transaction) => {
+    await withTransactionRetry(() => prisma.$transaction(async (transaction) => {
       const existingPayment = await transaction.payment.findUnique({
         where: { providerPaymentId: String(payment.id) },
         select: { status: true },
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
       if (status === "APPROVED") {
         await transaction.user.updateMany({ where: { id: userId }, data: { hasPaid: true } });
       }
-    });
+    }));
     return NextResponse.json({ received: true });
   } catch (error) {
     Sentry.captureException(error);

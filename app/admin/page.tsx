@@ -1,6 +1,7 @@
 import { requireAdminUser } from "@/lib/auth";
 import { getPlanPriceCents } from "@/lib/billing";
 import { PriceForm } from "@/app/admin/price-form";
+import { notFound, redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,15 @@ const formatPrice = (cents: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 
 export default async function AdminPage() {
-  await requireAdminUser();
+  try {
+    await requireAdminUser();
+  } catch (error) {
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      redirect("/login?callbackUrl=%2Fadmin");
+    }
+    if (error instanceof Error && error.message === "FORBIDDEN") notFound();
+    throw error;
+  }
   const price = await getPlanPriceCents();
 
   return (

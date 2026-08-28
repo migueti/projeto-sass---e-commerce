@@ -17,4 +17,8 @@ describe("initialPlanPriceCents", () => {
   it("falls back when the value cannot fit in a Prisma Int", () => {
     expect(initialPlanPriceCents("21474836.48")).toBe(2990);
   });
+
+  it("keeps large configured prices exact", () => {
+    expect(initialPlanPriceCents("20000000.01")).toBe(2_000_000_001);
+  });
 });

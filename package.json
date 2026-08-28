@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "mcp:check": "tsx --check mcp/server.ts",
+    "mcp:server": "tsx mcp/server.ts",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --configLoader runner",
@@ -29,6 +31,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@modelcontextprotocol/server": "^2.0.0-alpha.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pdfkit": "^0.17.6",
@@ -38,6 +41,7 @@
     "eslint-config-next": "16.3.3",
     "prisma": "^6.19.0",
     "tailwindcss": "^4",
+    "tsx": "^4.19.3",
     "typescript": "^5",
     "vitest": "^4.1.11"
   }

@@ -37,12 +37,6 @@ export function summarizeDashboard<
   goals: TGoal[];
   nextRecurrence: TRecurrence | null;
 }) {
-  const incomeCents = periodTransactions
-    .filter((item) => item.type === "INCOME")
-    .reduce((sum, item) => sum + item.cents, 0);
-  const expenseCents = periodTransactions
-    .filter((item) => item.type === "EXPENSE")
-    .reduce((sum, item) => sum + item.cents, 0);
   const historicalCents = historicalTransactions.reduce(
     (sum, item) => sum + (item.type === "INCOME" ? item.cents : -item.cents),
     0,
@@ -55,24 +49,13 @@ export function summarizeDashboard<
     string,
     { name: string; color: string | null; cents: number }
   >();
-
-  for (const transaction of periodTransactions.filter(
-    (item) => item.type === "EXPENSE",
-  )) {
-    const key = transaction.category?.id ?? "uncategorized";
-    const current = categoryTotals.get(key) ?? {
-      name: transaction.category?.name ?? "Sem categoria",
-      color: transaction.category?.color ?? "#b8a6ce",
-      cents: 0,
-    };
-    current.cents += transaction.cents;
-    categoryTotals.set(key, current);
-  }
-
   const monthlyFlow = new Map<
     string,
     { month: string; incomeCents: number; expenseCents: number }
   >();
+  let incomeCents = 0;
+  let expenseCents = 0;
+
   for (const transaction of periodTransactions) {
     const month = transaction.occurredAt.toISOString().slice(0, 7);
     const current = monthlyFlow.get(month) ?? {
@@ -80,8 +63,21 @@ export function summarizeDashboard<
       incomeCents: 0,
       expenseCents: 0,
     };
-    if (transaction.type === "INCOME") current.incomeCents += transaction.cents;
-    else current.expenseCents += transaction.cents;
+    if (transaction.type === "INCOME") {
+      incomeCents += transaction.cents;
+      current.incomeCents += transaction.cents;
+    } else {
+      expenseCents += transaction.cents;
+      current.expenseCents += transaction.cents;
+      const key = transaction.category?.id ?? "uncategorized";
+      const category = categoryTotals.get(key) ?? {
+        name: transaction.category?.name ?? "Sem categoria",
+        color: transaction.category?.color ?? "#b8a6ce",
+        cents: 0,
+      };
+      category.cents += transaction.cents;
+      categoryTotals.set(key, category);
+    }
     monthlyFlow.set(month, current);
   }
 

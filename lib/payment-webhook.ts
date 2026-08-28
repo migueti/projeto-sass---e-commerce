@@ -25,8 +25,9 @@ export function webhookSignatureIsValid(
     const [key, value] = part.trim().split("=", 2);
     return [key, value];
   }));
+  if (!values.ts || !/^\d+$/.test(values.ts)) return false;
   const timestamp = Number(values.ts);
-  if (!values.ts || !Number.isSafeInteger(timestamp) || Math.abs(nowSeconds - timestamp) > WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS || !values.v1 || !/^[a-f\d]{64}$/i.test(values.v1)) return false;
+  if (!Number.isSafeInteger(timestamp) || Math.abs(nowSeconds - timestamp) > WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS || !values.v1 || !/^[a-f\d]{64}$/i.test(values.v1)) return false;
   const manifest = `id:${dataId};request-id:${requestId};ts:${values.ts};`;
   const expected = createHmac("sha256", secret).update(manifest).digest("hex");
   const received = Buffer.from(values.v1, "hex");

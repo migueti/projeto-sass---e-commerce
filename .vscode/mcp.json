@@ -1,64 +1,4 @@
 {
-	"servers": {
-		"sequential-thinking": {
-			"command": "npx",
-			"args": [
-				"-y",
-				"@modelcontextprotocol/server-sequential-thinking"
-			],
-			"type": "stdio"
-		},
-		"obsidian": {
-			"type": "http",
-			"url": "https://repair-wrench-racing.ngrok-free.dev/mcp",
-			"headers": {
-				"Authorization": "Bearer ${input:OBSIDIAN_MCP_TOKEN}"
-			}
-		},
-		"context7": {
-			"type": "http",
-			"url": "https://mcp.context7.com/mcp"
-		},
-		"io.github.upstash/context7": {
-			"type": "stdio",
-			"command": "npx",
-			"args": [
-				"@upstash/context7-mcp@1.0.31"
-			],
-			"env": {
-				"CONTEXT7_API_KEY": "${input:CONTEXT7_API_KEY}"
-			},
-			"gallery": "https://api.mcp.github.com",
-			"version": "1.0.31"
-		},
-		"io.github.github/github-mcp-server": {
-			"type": "stdio",
-			"command": "docker",
-			"args": [
-				"run",
-				"-i",
-				"--rm",
-				"-p",
-				"127.0.0.1:8085:8085",
-				"-e",
-				"GITHUB_OAUTH_CALLBACK_PORT=8085",
-				"-e",
-				"GITHUB_PERSONAL_ACCESS_TOKEN=${input:token}",
-				"ghcr.io/github/github-mcp-server:1.11.0"
-			],
-			"gallery": "https://api.mcp.github.com",
-			"version": "1.11.0"
-		},
-		"io.github.vercel/next-devtools-mcp": {
-			"type": "stdio",
-			"command": "npx",
-			"args": [
-				"next-devtools-mcp@0.3.6"
-			],
-			"gallery": "https://api.mcp.github.com",
-			"version": "0.3.6"
-		}
-	},
 	"inputs": [
 		{
 			"id": "SENTRY_ACCESS_TOKEN",
@@ -84,5 +24,30 @@
 			"description": "",
 			"password": true
 		}
-	]
+	],
+	"servers": {
+		"engenharia-local": {
+			"command": "npm",
+			"args": ["run", "mcp:server"]
+		},
+		"sequential-thinking": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@modelcontextprotocol/server-sequential-thinking"
+			],
+			"type": "stdio"
+		},
+		"obsidian": {
+			"type": "http",
+			"url": "https://repair-wrench-racing.ngrok-free.dev/mcp",
+			"headers": {
+				"Authorization": "Bearer ${input:OBSIDIAN_MCP_TOKEN}"
+			}
+		},
+		"context7": {
+			"type": "http",
+			"url": "https://mcp.context7.com/mcp"
+		}
+	}
 }

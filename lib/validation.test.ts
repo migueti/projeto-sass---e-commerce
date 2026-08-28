@@ -48,6 +48,10 @@ describe("parseBrazilianCents", () => {
     expect(parseBrazilianCents("21.474.836,48")).toBeNull();
   });
 
+  it("keeps large amounts exact while converting to integer cents", () => {
+    expect(parseBrazilianCents("20.000.000,01")).toBe(2_000_000_001);
+  });
+
   it("rejects excessively long inputs before numeric conversion", () => {
     expect(parseBrazilianCents("1".repeat(33))).toBeNull();
   });
