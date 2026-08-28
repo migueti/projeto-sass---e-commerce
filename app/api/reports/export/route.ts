@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDashboardDateRange, parseDashboardFilters } from "@/lib/dashboard";
 import { PRIVATE_NO_STORE_HEADERS } from "@/lib/http";
+import type { DashboardFilters } from "@/lib/dashboard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +23,20 @@ function money(cents: number) {
 
 export function sanitizeSpreadsheetText(value: string) {
   return /^[\t\r\n ]*[=+\-@]/.test(value) ? `'${value}` : value;
+}
+
+export function buildExportWhere(
+  userId: string,
+  filters: DashboardFilters,
+  start: Date,
+  end: Date,
+) {
+  return {
+    userId,
+    occurredAt: { gte: start, lte: end },
+    ...(filters.accountId ? { accountId: filters.accountId } : {}),
+    ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
+  };
 }
 
 async function createPdf(rows: Array<{ description: string; type: string; cents: number; occurredAt: Date; account: { name: string }; category: { name: string } | null }>, title: string) {
@@ -58,7 +73,7 @@ export async function GET(request: Request) {
     const filters = parseDashboardFilters(params);
     const { start, end } = getDashboardDateRange(filters.period);
     const rows = await prisma.transaction.findMany({
-      where: { userId: user.id, occurredAt: { gte: start, lte: end }, ...(filters.accountId ? { accountId: filters.accountId } : {}), ...(filters.categoryId ? { categoryId: filters.categoryId } : {}) },
+      where: buildExportWhere(user.id, filters, start, end),
       include: { account: { select: { name: true } }, category: { select: { name: true } } },
       orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
       take: MAX_EXPORT_ROWS + 1,

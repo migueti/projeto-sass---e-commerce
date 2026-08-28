@@ -71,4 +71,34 @@ describe("POST /api/payments/webhook", () => {
     expect(mocks.getMercadoPagoPayment).not.toHaveBeenCalled();
     expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
   });
+
+  it("keeps pending payments pending without granting access", async () => {
+    const dataId = "payment-pending";
+    const requestId = "request-pending";
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const externalReference = "nuvem:user:user-123:price:2990:checkout-pending";
+    const manifest = `id:${dataId};request-id:${requestId};ts:${timestamp};`;
+    const hash = createHmac("sha256", "webhook-secret").update(manifest).digest("hex");
+
+    mocks.getMercadoPagoPayment.mockResolvedValue({
+      id: dataId,
+      external_reference: externalReference,
+      transaction_amount: 29.9,
+      status: "pending",
+    });
+    mocks.transactionClient.payment.findUnique.mockResolvedValue(null);
+    mocks.transactionClient.payment.upsert.mockResolvedValue({});
+
+    const response = await POST(new Request(
+      `http://localhost/api/payments/webhook?data.id=${dataId}`,
+      { headers: { "x-request-id": requestId, "x-signature": `ts=${timestamp},v1=${hash}` } },
+    ));
+
+    expect(response.status).toBe(200);
+    expect(mocks.transactionClient.payment.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({ status: "PENDING", approvedAt: null }),
+      update: { status: "PENDING", approvedAt: null },
+    }));
+    expect(mocks.transactionClient.user.updateMany).not.toHaveBeenCalled();
+  });
 });

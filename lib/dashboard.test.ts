@@ -50,15 +50,24 @@ describe("dashboard filters and periods", () => {
     const referenceDate = new Date("2026-03-15T16:45:00.000Z");
 
     expect(getDashboardDateRange("month", referenceDate)).toEqual({
-      start: new Date("2026-03-01T00:00:00.000Z"),
-      end: new Date("2026-03-15T23:59:59.999Z"),
+      start: new Date("2026-03-01T03:00:00.000Z"),
+      end: new Date("2026-03-16T02:59:59.999Z"),
     });
     expect(getDashboardDateRange("30days", referenceDate).start).toEqual(
-      new Date("2026-02-14T00:00:00.000Z"),
+      new Date("2026-02-14T03:00:00.000Z"),
     );
     expect(getDashboardDateRange("year", referenceDate).start).toEqual(
-      new Date("2026-01-01T00:00:00.000Z"),
+      new Date("2026-01-01T03:00:00.000Z"),
     );
+  });
+
+  it("uses the product timezone at a UTC month boundary", () => {
+    const referenceDate = new Date("2026-09-01T00:30:00.000Z");
+
+    expect(getDashboardDateRange("month", referenceDate)).toEqual({
+      start: new Date("2026-08-01T03:00:00.000Z"),
+      end: new Date("2026-09-01T02:59:59.999Z"),
+    });
   });
 });
 

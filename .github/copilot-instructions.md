@@ -70,6 +70,32 @@ This app is deliberately user-scoped. The domain is centered on `User -> Financi
 - Recurring transactions, goal contributions, and financial totals are sensitive business logic; follow the existing transaction patterns and ownership checks rather than introducing custom shortcuts.
 - The product UI and route names are Portuguese; keep validation messages and new feature names consistent with the existing app language.
 
+## Engineering workflow and delivery discipline
+
+- Start from a concrete failure, bug, route, or behavior; do not open broad refactors before understanding the call path.
+- Keep the change set small and tied to a single objective: fix, feature, audit, or documentation update.
+- For business logic, validate the data contract first: user ownership, account/category validation, date parsing, money in cents, and revalidation after mutation.
+- Prefer targeted validation: specific Vitest file, route reproduction, or a focused typecheck; only escalate to the full suite when the change affects shared behavior.
+- When a fix changes data semantics, add or update test coverage in the closest relevant file rather than only patching the UI.
+- Capture the decision context in a short note when the change affects architecture, auth, billing, or dashboard correctness.
+
+## Recommended next engineering passes
+
+These are the highest-value follow-ups in this codebase today:
+
+- Audit the billing and payment flow end-to-end: webhook validation, signed payload verification, user upgrade state, and admin pricing safeguards.
+- Harden the recurrence engine with transaction-safe generation rules, overdue caps, and predictable `nextOccurrence` behavior under concurrency.
+- Re-check dashboard correctness against the `occurredAt: { lt: start }` historical rule and ensure totals remain consistent across accounts, categories, and date filters.
+- Expand the tests around validation and financial calculations to cover edge cases without relying on UI-only confidence.
+- Review route and permission boundaries around admin-only access and paid-user gating to keep features protected by the same server-side rules used elsewhere.
+
+## Session documentation and knowledge capture
+
+- Record what was inspected, the decision taken, the validation command executed, and the next recommended follow-up.
+- Keep that record in a session note for future agent resumes or manual handoff.
+- If an external knowledge base like Obsidian is available, synchronize the note there. If not, save the same note in the local session state and mention the limitation in the final summary.
+- This repository already has project-level AI instructions; keep follow-up notes aligned with those documents instead of inventing a separate process.
+
 ## Local setup and environment
 
 - Start from `.env.example` and generate a unique `NEXTAUTH_SECRET` before running the app.

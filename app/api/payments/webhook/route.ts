@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 import { getMercadoPagoPayment } from "@/lib/mercado-pago";
 import { prisma } from "@/lib/prisma";
-import { priceFromExternalReference, userIdFromExternalReference, webhookSignatureIsValid } from "@/lib/payment-webhook";
+import { paymentStatusFromProvider, priceFromExternalReference, userIdFromExternalReference, webhookSignatureIsValid } from "@/lib/payment-webhook";
 
 export const runtime = "nodejs";
 
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
     const userId = userIdFromExternalReference(payment.external_reference);
     const amountCents = Math.round((payment.transaction_amount ?? 0) * 100);
     if (!userId || amountCents !== priceFromExternalReference(payment.external_reference)) return NextResponse.json({ received: true });
+    const status = paymentStatusFromProvider(payment.status);
 
     await prisma.$transaction(async (transaction) => {
       const existingPayment = await transaction.payment.findUnique({
@@ -40,15 +41,15 @@ export async function POST(request: Request) {
           providerPaymentId: String(payment.id),
           externalReference: payment.external_reference ?? `nuvem:user:${userId}`,
           amountCents,
-          status: payment.status === "approved" ? "APPROVED" : "REJECTED",
-          approvedAt: payment.status === "approved" ? new Date() : null,
+          status,
+          approvedAt: status === "APPROVED" ? new Date() : null,
         },
         update: {
-          status: payment.status === "approved" ? "APPROVED" : "REJECTED",
-          approvedAt: payment.status === "approved" ? new Date() : null,
+          status,
+          approvedAt: status === "APPROVED" ? new Date() : null,
         },
       });
-      if (payment.status === "approved") {
+      if (status === "APPROVED") {
         await transaction.user.updateMany({ where: { id: userId }, data: { hasPaid: true } });
       }
     });

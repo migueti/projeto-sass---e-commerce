@@ -2,6 +2,17 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 const WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS = 5 * 60;
 
+export type PaymentWebhookStatus = "APPROVED" | "PENDING" | "REJECTED";
+
+export function paymentStatusFromProvider(
+  status: string | null | undefined,
+): PaymentWebhookStatus {
+  if (status === "approved") return "APPROVED";
+  if (["rejected", "cancelled", "refunded", "charged_back"].includes(status ?? ""))
+    return "REJECTED";
+  return "PENDING";
+}
+
 export function webhookSignatureIsValid(
   signature: string | null,
   requestId: string | null,
@@ -30,5 +41,10 @@ export function userIdFromExternalReference(reference: string | undefined) {
 
 export function priceFromExternalReference(reference: string | undefined) {
   const match = /^nuvem:user:[^:]+:price:(\d+):[^:]+$/.exec(reference ?? "");
-  return match ? Number(match[1]) : null;
+  if (!match) return null;
+
+  const priceCents = Number(match[1]);
+  return Number.isSafeInteger(priceCents) && priceCents > 0
+    ? priceCents
+    : null;
 }
