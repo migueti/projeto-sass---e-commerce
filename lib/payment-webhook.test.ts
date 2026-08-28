@@ -2,9 +2,17 @@ import { createHmac } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import { paymentStatusFromProvider, priceFromExternalReference, userIdFromExternalReference, webhookSignatureIsValid } from "@/lib/payment-webhook";
+import { paymentAmountToCents, paymentStatusFromProvider, priceFromExternalReference, userIdFromExternalReference, webhookSignatureIsValid } from "@/lib/payment-webhook";
 
 describe("payment webhook", () => {
+  it("converts provider amounts to exact integer cents", () => {
+    expect(paymentAmountToCents(29.9)).toBe(2_990);
+    expect(paymentAmountToCents(20_000_000.01)).toBe(2_000_000_001);
+    expect(paymentAmountToCents(0)).toBe(null);
+    expect(paymentAmountToCents(Number.POSITIVE_INFINITY)).toBe(null);
+    expect(paymentAmountToCents(21_474_836.48)).toBe(null);
+  });
+
   it("maps provider statuses without treating pending as rejected", () => {
     expect(paymentStatusFromProvider("approved")).toBe("APPROVED");
     expect(paymentStatusFromProvider("pending")).toBe("PENDING");

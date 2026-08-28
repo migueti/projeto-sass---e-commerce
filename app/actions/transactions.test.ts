@@ -108,4 +108,10 @@ describe("transaction ownership mutations", () => {
     });
     expect(mocks.transactionUpdateMany).not.toHaveBeenCalled();
   });
+
+  it("rejects invalid transaction identifiers before querying the database", async () => {
+    await expect(deleteTransaction("   ")).rejects.toThrow("Lançamento inválido.");
+    await expect(updateTransaction("   ", createTransactionForm())).rejects.toThrow("Lançamento inválido.");
+    expect(mocks.transactionFindFirst).not.toHaveBeenCalled();
+  });
 });

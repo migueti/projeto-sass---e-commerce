@@ -23,7 +23,7 @@ export async function requirePaidUser() {
 
 export function isAdminUser(user: { role: string; email: string }) {
   const configuredAdminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  return user.role === "ADMIN" || user.email === configuredAdminEmail;
+  return user.role === "ADMIN" || user.email.trim().toLowerCase() === configuredAdminEmail;
 }
 
 export async function requireAdminUser() {

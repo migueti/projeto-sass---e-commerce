@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 import { getPlanPriceCents } from "@/lib/billing";
 
+const MAX_PRICE_CENTS = 2_147_483_647;
+
 export function getMercadoPagoBaseUrl() {
   const value = process.env.APP_URL ?? process.env.NEXTAUTH_URL;
   if (!value) throw new Error("MERCADOPAGO_NOT_CONFIGURED");
@@ -44,6 +46,9 @@ export function buildCheckoutPreferenceBody(
   externalReference: string,
   priceCents: number,
 ) {
+  if (!Number.isInteger(priceCents) || priceCents <= 0 || priceCents > MAX_PRICE_CENTS)
+    throw new Error("MERCADOPAGO_INVALID_PRICE");
+
   return {
     items: [{
       id: "nuvem-access",

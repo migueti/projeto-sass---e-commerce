@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { consumeLoginAttempt, resetLoginAttempts } from "@/lib/login-rate-limit";
 import { passwordSchema } from "@/lib/validation";
 
+const DUMMY_PASSWORD_HASH = "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
@@ -37,7 +39,10 @@ export const authOptions: NextAuthOptions = {
         const user = await prisma.user.findUnique({
           where: { email },
         });
-        if (!user?.passwordHash) return null;
+        if (!user?.passwordHash) {
+          await bcrypt.compare(credentials.password, DUMMY_PASSWORD_HASH);
+          return null;
+        }
 
         const passwordMatches = await bcrypt.compare(credentials.password, user.passwordHash);
         if (!passwordMatches) return null;

@@ -6,6 +6,7 @@ import { FinancialGoal } from "@/lib/domain/financial/financial-goal";
 import { Money } from "@/lib/domain/financial/money";
 import { requirePaidUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { withTransactionRetry } from "@/lib/recurrence";
 import { parseBrazilianCents, parseLocalDate } from "@/lib/validation";
 import { revalidatePaths } from "@/lib/revalidation";
 
@@ -59,7 +60,7 @@ export async function createGoal(formData: FormData) {
     accountId = account.id;
   }
 
-  await prisma.$transaction(async (transaction) => {
+  await withTransactionRetry(() => prisma.$transaction(async (transaction) => {
     const activeGoalCount = await transaction.financialGoal.count({
       where: { userId: user.id, status: "ACTIVE" },
     });
@@ -91,7 +92,7 @@ export async function createGoal(formData: FormData) {
         },
       });
     }
-  });
+  }));
   revalidatePaths("/metas", "/", "/contas", "/lancamentos");
 }
 
@@ -119,7 +120,7 @@ export async function addGoalContribution(id: string, formData: FormData) {
   const cents = parseBrazilianCents(result.data.amount);
   if (!cents) throw new Error("Informe um aporte válido maior que zero.");
 
-  await prisma.$transaction(async (transaction) => {
+  await withTransactionRetry(() => prisma.$transaction(async (transaction) => {
     const goal = await transaction.financialGoal.findFirst({
       where: { id, userId: user.id, status: "ACTIVE" },
       select: { savedCents: true, targetCents: true, accountId: true, name: true },
@@ -162,6 +163,6 @@ export async function addGoalContribution(id: string, formData: FormData) {
         },
       });
     }
-  });
+  }));
   revalidatePaths("/metas", "/", "/contas", "/lancamentos");
 }

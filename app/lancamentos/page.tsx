@@ -95,6 +95,9 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                   required
                 />
               </label>
+              <Link className="export-button" href="/importar">
+                Importar extrato
+              </Link>
               <div className="form-row">
                 <label>
                   Valor

@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 import { getMercadoPagoPayment } from "@/lib/mercado-pago";
 import { prisma } from "@/lib/prisma";
-import { paymentStatusFromProvider, priceFromExternalReference, userIdFromExternalReference, webhookSignatureIsValid } from "@/lib/payment-webhook";
+import { paymentAmountToCents, paymentStatusFromProvider, priceFromExternalReference, userIdFromExternalReference, webhookSignatureIsValid } from "@/lib/payment-webhook";
 import { withTransactionRetry } from "@/lib/recurrence";
 
 export const runtime = "nodejs";
@@ -24,8 +24,8 @@ export async function POST(request: Request) {
       throw error;
     }
     const userId = userIdFromExternalReference(payment.external_reference);
-    const amountCents = Math.round((payment.transaction_amount ?? 0) * 100);
-    if (!userId || amountCents !== priceFromExternalReference(payment.external_reference)) return NextResponse.json({ received: true });
+    const amountCents = paymentAmountToCents(payment.transaction_amount);
+    if (!userId || amountCents === null || amountCents !== priceFromExternalReference(payment.external_reference)) return NextResponse.json({ received: true });
     const status = paymentStatusFromProvider(payment.status);
 
     await withTransactionRetry(() => prisma.$transaction(async (transaction) => {

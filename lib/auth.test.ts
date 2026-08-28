@@ -13,7 +13,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: { user: { findUnique: mocks.findUnique } },
 }));
 
-import { requirePaidUser } from "@/lib/auth";
+import { isAdminUser, requirePaidUser } from "@/lib/auth";
 
 describe("requirePaidUser", () => {
   beforeEach(() => {
@@ -49,5 +49,13 @@ describe("requirePaidUser", () => {
 
     await expect(requirePaidUser()).rejects.toThrow("REDIRECT");
     expect(mocks.redirect).toHaveBeenCalledWith("/assinar");
+  });
+
+  it("normalizes the configured admin email comparison", () => {
+    process.env.ADMIN_EMAIL = "vinipedro629@gmail.com";
+
+    expect(
+      isAdminUser({ role: "USER", email: "  VINIPEDRO629@GMAIL.COM  " }),
+    ).toBe(true);
   });
 });
