@@ -7,7 +7,8 @@ export const passwordSchema = z
   .string()
   .min(8, "A senha deve ter pelo menos 8 caracteres.")
   .refine(
-    (value) => new TextEncoder().encode(value).length <= BCRYPT_MAX_PASSWORD_BYTES,
+    (value) => value.length <= BCRYPT_MAX_PASSWORD_BYTES
+      && new TextEncoder().encode(value).length <= BCRYPT_MAX_PASSWORD_BYTES,
     `A senha deve ter no máximo ${BCRYPT_MAX_PASSWORD_BYTES} bytes.`,
   );
 

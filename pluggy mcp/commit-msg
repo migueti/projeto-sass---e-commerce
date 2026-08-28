@@ -1,0 +1,4 @@
+COMMIT_MSG=$(cat "$1")
+EMOJI_MSG=$(echo "$COMMIT_MSG" | bunx devmoji)
+echo "$EMOJI_MSG" > "$1"
+bunx --no -- commitlint --edit "$1"

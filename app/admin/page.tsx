@@ -2,6 +2,7 @@ import { requireAdminUser } from "@/lib/auth";
 import { getPlanPriceCents } from "@/lib/billing";
 import { PriceForm } from "@/app/admin/price-form";
 import { notFound, redirect } from "next/navigation";
+import { AdminPluggyPanel } from "@/components/admin-pluggy-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,7 @@ export default async function AdminPage() {
         </div>
         <PriceForm price={(price / 100).toFixed(2).replace(".", ",")} />
       </section>
+      <AdminPluggyPanel />
     </main>
   );
 }

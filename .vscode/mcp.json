@@ -11,23 +11,36 @@
 			"type": "promptString",
 			"description": "",
 			"password": true
+		},
+		{
+			"id": "PLUGGY_CLIENT_ID",
+			"type": "promptString",
+			"description": "Pluggy Client ID",
+			"password": true
+		},
+		{
+			"id": "PLUGGY_CLIENT_SECRET",
+			"type": "promptString",
+			"description": "Pluggy Client Secret",
+			"password": true
 		}
 	],
 	"servers": {
 		"engenharia-local": {
-			"command": "npm",
+			"command": "node",
 			"args": [
-				"run",
-				"mcp:server"
+				"node_modules/tsx/dist/cli.mjs",
+				"mcp/server.ts"
 			],
+			"cwd": "${workspaceFolder}",
 			"type": "stdio"
 		},
 		"sequential-thinking": {
-			"command": "npx",
+			"command": "node",
 			"args": [
-				"--no-install",
-				"mcp-server-sequential-thinking"
+				"node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js"
 			],
+			"cwd": "${workspaceFolder}",
 			"type": "stdio"
 		},
 		"context7": {
@@ -38,6 +51,16 @@
 				"--api-key",
 				"${input:CONTEXT7_API_KEY}"
 			],
+			"type": "stdio"
+		},
+		"pluggy": {
+			"command": "node",
+			"args": ["pluggy mcp/dist/index.js"],
+			"env": {
+				"PLUGGY_CLIENT_ID": "${input:PLUGGY_CLIENT_ID}",
+				"PLUGGY_CLIENT_SECRET": "${input:PLUGGY_CLIENT_SECRET}",
+				"PLUGGY_API_BASE": "${env:PLUGGY_API_BASE}"
+			},
 			"type": "stdio"
 		}
 	}
