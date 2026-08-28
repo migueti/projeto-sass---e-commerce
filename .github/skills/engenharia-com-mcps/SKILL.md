@@ -1,6 +1,6 @@
 ---
 name: engenharia-com-mcps
-description: "Conduza melhorias, revisões, debugging, refatorações e planejamento de engenharia com coordenação entre abas de IA. Use quando a tarefa envolver qualidade, segurança, autorização, concorrência, validação, observabilidade ou evolução do projeto. Consulte Context7, Sequential Thinking e Obsidian antes de decidir; valide mudanças e registre o trabalho."
+description: "Conduza melhorias, revisões, debugging, refatorações e planejamento de engenharia com coordenação entre abas de IA. Use quando a tarefa envolver qualidade, segurança, autorização, concorrência, validação, observabilidade ou evolução do projeto. Consulte Context7, Sequential Thinking e engenharia-local antes de decidir; valide mudanças e registre o trabalho."
 argument-hint: "Descreva o problema, comportamento, arquivo ou objetivo de engenharia"
 user-invocable: true
 disable-model-invocation: false
@@ -31,7 +31,7 @@ Produzir mudanças pequenas, seguras e verificáveis, mantendo todas as sessões
 2. **Verificar MCPs**
    - Use Sequential Thinking para decompor o problema, questionar hipóteses e revisar a decisão.
    - Resolva o ID da biblioteca e consulte Context7 para a documentação atual do framework, biblioteca, SDK, API ou CLI envolvida.
-   - Busque e leia notas relevantes no Obsidian antes de alterar comportamento documentado.
+   - Use `engenharia-local` para inspecionar e validar o repositório antes de alterar comportamento documentado.
    - Se um MCP obrigatório estiver indisponível, registre a limitação. Quando a instrução do projeto exigir o MCP como pré-condição, interrompa a implementação e peça a reativação.
    - Não invente resultados de ferramentas.
 
@@ -56,9 +56,7 @@ Produzir mudanças pequenas, seguras e verificáveis, mantendo todas as sessões
    - Use `git diff --check` ao finalizar.
 
 6. **Registrar o trabalho**
-   - No Obsidian, acrescente uma nota curta contendo data, objetivo, contexto, hipótese, decisão, arquivos, validações, resultado, risco residual e próximo passo.
-   - Prefira uma nota existente de engenharia quando houver uma relacionada; leia-a antes de acrescentar conteúdo.
-   - Se o Obsidian estiver indisponível, registre a mesma informação em arquivo local de sessão e informe a limitação no resumo.
+   - Acrescente uma nota curta em arquivo local de sessão contendo data, objetivo, contexto, hipótese, decisão, arquivos, validações, resultado, risco residual e próximo passo.
    - Não registre segredos, tokens, dados financeiros ou conteúdo sensível.
 
 ## Critérios de conclusão
@@ -69,7 +67,7 @@ A tarefa só está concluída quando:
 - O teste focado ou reprodução foi executado após a edição.
 - Os gates relevantes foram executados e seus resultados são conhecidos.
 - Alterações concorrentes foram preservadas.
-- O resultado, os MCPs utilizados, os riscos residuais e o próximo passo foram registrados no Obsidian ou localmente.
+- O resultado, os MCPs utilizados, os riscos residuais e o próximo passo foram registrados localmente.
 
 ## Limites importantes
 

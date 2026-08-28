@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
-import { PDFParse } from "pdf-parse";
+import { getPath } from "pdf-parse/worker";
+import { InvalidPDFException, PasswordException, PDFParse } from "pdf-parse";
 
-import { requirePaidUser } from "@/lib/auth";
+import { requirePaidApiUser } from "@/lib/auth";
 import { PRIVATE_NO_STORE_HEADERS } from "@/lib/http";
 import { extractStatementTextFromFile, parseBankStatementText, statementImportLimits } from "@/lib/statement-import";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+PDFParse.setWorker(getPath());
+
 export async function POST(request: Request) {
   try {
-    await requirePaidUser();
+    await requirePaidApiUser();
     const formData = await request.formData();
     const file = formData.get("file");
     if (!(file instanceof File) || file.size === 0 || file.size > statementImportLimits.maxBytes)
@@ -40,6 +43,13 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED")
       return NextResponse.json({ error: "Não autenticado." }, { status: 401, headers: PRIVATE_NO_STORE_HEADERS });
+    if (error instanceof Error && error.message === "PAYMENT_REQUIRED")
+      return NextResponse.json({ error: "Pagamento necessário." }, { status: 402, headers: PRIVATE_NO_STORE_HEADERS });
+    console.error("Falha ao analisar extrato:", error);
+    if (error instanceof PasswordException)
+      return NextResponse.json({ error: "Este PDF está protegido por senha. Envie um arquivo desbloqueado." }, { status: 422, headers: PRIVATE_NO_STORE_HEADERS });
+    if (error instanceof InvalidPDFException)
+      return NextResponse.json({ error: "O PDF parece estar corrompido ou não é um arquivo PDF válido." }, { status: 422, headers: PRIVATE_NO_STORE_HEADERS });
     return NextResponse.json({ error: "Não foi possível ler este extrato." }, { status: 422, headers: PRIVATE_NO_STORE_HEADERS });
   }
 }

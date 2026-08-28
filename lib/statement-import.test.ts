@@ -100,6 +100,21 @@ describe("parseBankStatementText", () => {
     ]);
   });
 
+  it("classifies card statement rows and credit card payments as expenses", () => {
+    expect(parseBankStatementText("julho/2026\n01/07 5280.1060 DROGARIA BRASIL 2,49")).toEqual([
+      { date: "2026-07-01", description: "5280.1060 DROGARIA BRASIL", cents: 249, type: "EXPENSE" },
+    ]);
+    expect(parseBankStatementText("julho/2026\n01/07 PAGAMENTO CARTAO CREDITO BCE 100,00")).toEqual([
+      { date: "2026-07-01", description: "PAGAMENTO CARTAO CREDITO BCE", cents: 10000, type: "EXPENSE" },
+    ]);
+  });
+
+  it("deduplicates Santander rows with an account prefix", () => {
+    expect(parseBankStatementText("julho/2026\n01/07 GIVAS LANCHES 7,00-\n01/07 5280.1060 GIVAS LANCHES 7,00")).toEqual([
+      { date: "2026-07-01", description: "GIVAS LANCHES", cents: 700, type: "EXPENSE" },
+    ]);
+  });
+
   it("parses multi-line bank entries split across lines", () => {
     const text = `01/11
 SUPERMERCADO

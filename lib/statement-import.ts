@@ -131,7 +131,9 @@ function normalizeTextForKeywords(value: string) {
 
 function inferTypeFromText(value: string, description: string): ImportedStatementRow["type"] {
   const normalized = normalizeTextForKeywords(`${value} ${description}`);
-  const isExpense = /(\-|DEBITO|DEBIT|SAIDA|PAGAMENTO|COMPRA|TRANSFERENCIA PARA|GASTO|CREDITO)/i.test(normalized) && !/(CREDITO|RECEBIDO|ENTRADA|PIX RECEBIDO|SALARIO|VENCIMENTO|DEPOSITO)/i.test(normalized);
+  const isCardStatementRow = /(?:^|\s)\d{4}\.\d{4}\s/.test(normalized);
+  const isCreditCardPayment = /PAGAMENTO\s+CARTAO\s+CREDITO/.test(normalized);
+  const isExpense = isCardStatementRow || isCreditCardPayment || /(-|DEBITO|DEBIT|SAIDA|PAGAMENTO|COMPRA|TRANSFERENCIA PARA|GASTO)/i.test(normalized);
   const isIncome = /(CREDITO|RECEBIDO|ENTRADA|PIX RECEBIDO|SALARIO|VENCIMENTO|DEPOSITO|RENDIMENTO)/i.test(normalized);
   if (isExpense) return "EXPENSE";
   if (isIncome) return "INCOME";
@@ -295,13 +297,17 @@ function parseMultilineEntries(text: string): ImportedStatementRow[] {
   return rows;
 }
 
+function deduplicationDescription(value: string) {
+  return value.replace(/^\d{4}\.\d{4}\s+/, "").trim().toUpperCase();
+}
+
 function mergeImportedRows(...groups: ImportedStatementRow[][]) {
   const rows: ImportedStatementRow[] = [];
   const seen = new Set<string>();
 
   for (const group of groups) {
     for (const row of group) {
-      const key = `${row.date}|${row.description}|${row.cents}|${row.type}`;
+      const key = `${row.date}|${deduplicationDescription(row.description)}|${row.cents}|${row.type}`;
       if (seen.has(key)) continue;
       seen.add(key);
       rows.push(row);

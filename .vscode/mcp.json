@@ -1,18 +1,6 @@
 {
 	"inputs": [
 		{
-			"id": "SENTRY_ACCESS_TOKEN",
-			"type": "promptString",
-			"description": "Your Sentry user authentication token",
-			"password": true
-		},
-		{
-			"id": "OBSIDIAN_MCP_TOKEN",
-			"type": "promptString",
-			"description": "Token de autenticação do Obsidian MCP Server",
-			"password": true
-		},
-		{
 			"id": "CONTEXT7_API_KEY",
 			"type": "promptString",
 			"description": "API key for authentication",
@@ -28,26 +16,29 @@
 	"servers": {
 		"engenharia-local": {
 			"command": "npm",
-			"args": ["run", "mcp:server"]
+			"args": [
+				"run",
+				"mcp:server"
+			],
+			"type": "stdio"
 		},
 		"sequential-thinking": {
 			"command": "npx",
 			"args": [
-				"-y",
-				"@modelcontextprotocol/server-sequential-thinking"
+				"--no-install",
+				"mcp-server-sequential-thinking"
 			],
 			"type": "stdio"
 		},
-		"obsidian": {
-			"type": "http",
-			"url": "https://repair-wrench-racing.ngrok-free.dev/mcp",
-			"headers": {
-				"Authorization": "Bearer ${input:OBSIDIAN_MCP_TOKEN}"
-			}
-		},
 		"context7": {
-			"type": "http",
-			"url": "https://mcp.context7.com/mcp"
+			"command": "npx",
+			"args": [
+				"--no-install",
+				"@upstash/context7-mcp",
+				"--api-key",
+				"${input:CONTEXT7_API_KEY}"
+			],
+			"type": "stdio"
 		}
 	}
 }

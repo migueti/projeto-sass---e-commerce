@@ -4,15 +4,12 @@ const mocks = vi.hoisted(() => ({
   hash: vi.fn(),
   findUnique: vi.fn(),
   create: vi.fn(),
-  captureException: vi.fn(),
 }));
 
 vi.mock("bcryptjs", () => ({ default: { hash: mocks.hash } }));
 vi.mock("@/lib/prisma", () => ({
   prisma: { user: { findUnique: mocks.findUnique, create: mocks.create } },
 }));
-vi.mock("@sentry/nextjs", () => ({ captureException: mocks.captureException }));
-
 import { registerUser } from "@/app/actions/auth";
 
 describe("registerUser", () => {

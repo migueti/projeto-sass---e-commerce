@@ -1,9 +1,8 @@
-import * as Sentry from "@sentry/nextjs";
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
 import { NextResponse } from "next/server";
 
-import { requireUser } from "@/lib/auth";
+import { requirePaidApiUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDashboardDateRange, parseDashboardFilters } from "@/lib/dashboard";
 import { PRIVATE_NO_STORE_HEADERS } from "@/lib/http";
@@ -63,8 +62,7 @@ async function createPdf(rows: Array<{ description: string; type: string; cents:
 
 export async function GET(request: Request) {
   try {
-    const user = await requireUser();
-    if (!user.hasPaid) return NextResponse.json({ error: "Pagamento necessário." }, { status: 402, headers: PRIVATE_NO_STORE_HEADERS });
+    const user = await requirePaidApiUser();
     const params = new URL(request.url).searchParams;
     const format = params.get("format") ?? "xlsx";
     if (format !== "pdf" && format !== "xlsx") {
@@ -102,8 +100,8 @@ export async function GET(request: Request) {
     return new Response(buffer, { headers: { ...PRIVATE_NO_STORE_HEADERS, "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Content-Disposition": 'attachment; filename="nuvem-lancamentos.xlsx"' } });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") return NextResponse.json({ error: "Não autenticado." }, { status: 401, headers: PRIVATE_NO_STORE_HEADERS });
+    if (error instanceof Error && error.message === "PAYMENT_REQUIRED") return NextResponse.json({ error: "Pagamento necessário." }, { status: 402, headers: PRIVATE_NO_STORE_HEADERS });
     if (error instanceof Error && error.message === "INVALID_PERIOD") return NextResponse.json({ error: "Período inválido." }, { status: 400, headers: PRIVATE_NO_STORE_HEADERS });
-    Sentry.captureException(error);
     return NextResponse.json({ error: "Não foi possível gerar a exportação." }, { status: 500, headers: PRIVATE_NO_STORE_HEADERS });
   }
 }

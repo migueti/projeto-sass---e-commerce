@@ -5,7 +5,6 @@ const mocks = vi.hoisted(() => ({
   isAdminUser: vi.fn(),
   getPlanPriceCents: vi.fn(),
   createCheckoutPreference: vi.fn(),
-  captureException: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -16,8 +15,6 @@ vi.mock("@/lib/billing", () => ({ getPlanPriceCents: mocks.getPlanPriceCents }))
 vi.mock("@/lib/mercado-pago", () => ({
   createCheckoutPreference: mocks.createCheckoutPreference,
 }));
-vi.mock("@sentry/nextjs", () => ({ captureException: mocks.captureException }));
-
 import { POST as checkout } from "@/app/api/payments/checkout/route";
 import { GET as plan } from "@/app/api/payments/plan/route";
 import { GET as status } from "@/app/api/payments/status/route";

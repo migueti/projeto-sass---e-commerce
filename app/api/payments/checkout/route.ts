@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 
 import { isAdminUser, requireUser } from "@/lib/auth";
@@ -23,7 +22,6 @@ export async function POST() {
       return NextResponse.json({ error: "A URL pública do pagamento não está configurada corretamente." }, { status: 503, headers: PRIVATE_NO_STORE_HEADERS });
     if (error instanceof Error && error.message === "MERCADOPAGO_ENVIRONMENT_MISMATCH")
       return NextResponse.json({ error: "As credenciais do Mercado Pago não correspondem ao ambiente configurado." }, { status: 503, headers: PRIVATE_NO_STORE_HEADERS });
-    Sentry.captureException(error);
     return NextResponse.json({ error: "Não foi possível iniciar o pagamento." }, { status: 500, headers: PRIVATE_NO_STORE_HEADERS });
   }
 }

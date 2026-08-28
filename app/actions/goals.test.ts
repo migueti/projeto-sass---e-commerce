@@ -55,6 +55,18 @@ describe("deleteGoal", () => {
     );
     expect(mocks.deleteMany).not.toHaveBeenCalled();
   });
+
+  it("deletes only a goal that still has no contributions", async () => {
+    mocks.requirePaidUser.mockResolvedValue({ id: "user-1", hasPaid: true });
+    mocks.findFirst.mockResolvedValue({ _count: { contributions: 0 } });
+    mocks.deleteMany.mockResolvedValue({ count: 1 });
+
+    await deleteGoal("goal-1");
+
+    expect(mocks.deleteMany).toHaveBeenCalledWith({
+      where: { id: "goal-1", userId: "user-1", contributions: { none: {} } },
+    });
+  });
 });
 
 describe("createGoal", () => {

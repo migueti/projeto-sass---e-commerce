@@ -100,6 +100,8 @@ button { cursor: pointer; }
 }
 
 .outline-button:hover { border-color: #5d8e63; background: #fbfcf9; }
+.danger-button { color: #b9655c; }
+.danger-button:hover { border-color: #d37f74; background: #fff8f7; }
 
 .delete-button {
   border: 0;
@@ -284,6 +286,8 @@ button { cursor: pointer; }
 
 /* ===== RECORDS & LISTS ===== */
 .records { margin-top: 16px; }
+.import-preview { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.import-preview-list { max-height: 420px; overflow-y: auto; margin: 14px 0 18px; padding-right: 8px; }
 .record { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 0; border-top: 1px solid var(--record-line); color: var(--label); }
 .record strong { display: block; font-size: 12px; }
 .record small { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }

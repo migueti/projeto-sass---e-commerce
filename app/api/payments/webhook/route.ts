@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/nextjs";
 import { MPNotFoundError } from "mercadopago";
 import { NextResponse } from "next/server";
 
@@ -31,9 +30,16 @@ export async function POST(request: Request) {
     await withTransactionRetry(() => prisma.$transaction(async (transaction) => {
       const existingPayment = await transaction.payment.findUnique({
         where: { providerPaymentId: String(payment.id) },
-        select: { status: true },
+        select: { status: true, userId: true, externalReference: true, amountCents: true },
       });
       if (existingPayment?.status === "APPROVED") return;
+      if (
+        existingPayment &&
+        (existingPayment.userId !== userId ||
+          existingPayment.externalReference !== payment.external_reference ||
+          existingPayment.amountCents !== amountCents)
+      )
+        return;
 
       await transaction.payment.upsert({
         where: { providerPaymentId: String(payment.id) },
@@ -55,8 +61,7 @@ export async function POST(request: Request) {
       }
     }));
     return NextResponse.json({ received: true });
-  } catch (error) {
-    Sentry.captureException(error);
+  } catch {
     return NextResponse.json({ error: "Não foi possível processar o webhook." }, { status: 500 });
   }
 }

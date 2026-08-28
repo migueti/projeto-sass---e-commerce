@@ -80,4 +80,9 @@ describe("recurrence ownership mutations", () => {
     });
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
+
+  it("rejects an empty recurrence identifier before querying", async () => {
+    await expect(deleteRecurrence("   ")).rejects.toThrow("Recorrência inválida.");
+    expect(mocks.recurrenceDeleteMany).not.toHaveBeenCalled();
+  });
 });

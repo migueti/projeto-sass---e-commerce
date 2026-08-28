@@ -16,7 +16,6 @@ O registro informa presença, não sincroniza históricos de conversa nem resolv
 - Antes de iniciar cada tarefa, defina objetivo, arquivos impactados, validação mínima e risco de regressão.
 - Registre o que foi analisado, o que foi decidido e o que será validado em um arquivo de sessão ou nota de trabalho.
 - Quando a mudança tiver um impacto real em arquitetura, produto ou segurança, documente a decisão com contexto, motivo e ponto de atenção.
-- Se o Obsidian MCP estiver disponível, sincronize a observação diretamente para a base de conhecimento do projeto. Quando não estiver disponível, grave o mesmo registro em um arquivo local persistente do ambiente e mencione a limitação no resumo final.
 - Mantenha os registros curtos, objetivos e úteis para retomada de contexto por futuras sessões.
 
 ## Checklist de engenharia

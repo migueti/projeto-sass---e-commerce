@@ -18,7 +18,6 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
     "@prisma/client": "^6.19.0",
-    "@sentry/nextjs": "^10.71.0",
     "@upstash/context7-tools-ai-sdk": "^0.2.5",
     "bcryptjs": "^3.0.3",
     "exceljs": "^4.4.0",
@@ -34,11 +33,13 @@
   },
   "devDependencies": {
     "@modelcontextprotocol/server": "^2.0.0-alpha.2",
+    "@modelcontextprotocol/server-sequential-thinking": "^2026.7.4",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pdfkit": "^0.17.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@upstash/context7-mcp": "^4.0.3",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
     "prisma": "^6.19.0",

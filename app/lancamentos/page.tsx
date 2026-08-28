@@ -1,5 +1,6 @@
 import { createTransaction } from "@/app/actions/transactions";
 import { AccountForm } from "@/components/account-form";
+import { DeleteAllTransactionsButton } from "@/components/delete-all-transactions-button";
 import { DeleteTransactionButton } from "@/components/delete-transaction-button";
 import { type Prisma, TransactionType } from "@prisma/client";
 import Link from "next/link";
@@ -158,6 +159,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
             <h3>Lançamentos recentes</h3>
             <p>{transactionCount} registro(s) encontrado(s)</p>
           </div>
+          {transactionCount > 0 && <DeleteAllTransactionsButton />}
         </div>
         <form method="get" className="filter-form">
           <select name="type" defaultValue={type ?? ""}><option value="">Todos os tipos</option><option value="INCOME">Receitas</option><option value="EXPENSE">Despesas</option></select>

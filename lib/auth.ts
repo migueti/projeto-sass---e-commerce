@@ -21,6 +21,12 @@ export async function requirePaidUser() {
   return user;
 }
 
+export async function requirePaidApiUser() {
+  const user = await requireUser();
+  if (!user.hasPaid && !isAdminUser(user)) throw new Error("PAYMENT_REQUIRED");
+  return user;
+}
+
 export function isAdminUser(user: { role: string; email: string }) {
   const configuredAdminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   return user.role === "ADMIN" || user.email.trim().toLowerCase() === configuredAdminEmail;

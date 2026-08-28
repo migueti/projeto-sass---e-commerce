@@ -23,6 +23,11 @@ const recurrenceSchema = z.object({
   endAt: z.string().optional(),
 });
 
+function normalizeRecurrenceId(id: string) {
+  if (typeof id !== "string" || !id.trim()) throw new Error("Recorrência inválida.");
+  return id.trim();
+}
+
 export async function createRecurrence(formData: FormData) {
   const user = await requirePaidUser();
   const result = recurrenceSchema.safeParse(Object.fromEntries(formData));
@@ -71,8 +76,9 @@ export async function createRecurrence(formData: FormData) {
 
 export async function processRecurrence(id: string) {
   const user = await requirePaidUser();
+  const recurrenceId = normalizeRecurrenceId(id);
   const recurrence = await prisma.recurringTransaction.findFirst({
-    where: { id, userId: user.id, active: true },
+    where: { id: recurrenceId, userId: user.id, active: true },
   });
   const now = new Date();
   if (!recurrence || recurrence.nextOccurrence > now)
@@ -99,7 +105,7 @@ export async function processRecurrence(id: string) {
   const updated = await withTransactionRetry(() => prisma.$transaction(async (transaction) => {
       const claimed = await transaction.recurringTransaction.updateMany({
         where: {
-          id,
+          id: recurrenceId,
           userId: user.id,
           active: true,
           nextOccurrence: recurrence.nextOccurrence,
@@ -128,10 +134,11 @@ export async function processRecurrence(id: string) {
 
 export async function toggleRecurrence(id: string) {
   const user = await requirePaidUser();
-  const recurrence = await prisma.recurringTransaction.findFirst({ where: { id, userId: user.id } });
+  const recurrenceId = normalizeRecurrenceId(id);
+  const recurrence = await prisma.recurringTransaction.findFirst({ where: { id: recurrenceId, userId: user.id } });
   if (!recurrence) throw new Error("Recorrência não encontrada.");
   const updated = await prisma.recurringTransaction.updateMany({
-    where: { id, userId: user.id, active: recurrence.active },
+    where: { id: recurrenceId, userId: user.id, active: recurrence.active },
     data: { active: !recurrence.active },
   });
   if (updated.count !== 1) throw new Error("A recorrência foi alterada. Atualize a página e tente novamente.");
@@ -140,7 +147,8 @@ export async function toggleRecurrence(id: string) {
 
 export async function deleteRecurrence(id: string) {
   const user = await requirePaidUser();
-  const result = await prisma.recurringTransaction.deleteMany({ where: { id, userId: user.id } });
+  const recurrenceId = normalizeRecurrenceId(id);
+  const result = await prisma.recurringTransaction.deleteMany({ where: { id: recurrenceId, userId: user.id } });
   if (result.count !== 1) throw new Error("Recorrência não encontrada.");
   revalidatePaths("/recorrencias", "/");
 }
