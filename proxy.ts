@@ -7,5 +7,7 @@ export const publicRoutePattern =
 export const protectedRouteMatcher = `/((?!${publicRoutePattern}).*)`;
 
 export const config = {
-  matcher: [protectedRouteMatcher],
+  matcher: [
+    "/((?!login(?:/|$)|cadastro(?:/|$)|api/auth(?:/|$)|api/payments/webhook(?:/|$)|_next/static(?:/|$)|_next/image(?:/|$)|favicon\\.ico$).*)",
+  ],
 };

@@ -1,6 +1,8 @@
 "use server";
 
+import { createTransaction as createTransactionUseCase } from "@/lib/application/financial/create-transaction";
 import { requirePaidUser } from "@/lib/auth";
+import { createPrismaTransactionRepository } from "@/lib/infrastructure/prisma-transaction-repository";
 import { prisma } from "@/lib/prisma";
 import { revalidateFinancialPaths, revalidatePaths } from "@/lib/revalidation";
 import { accountSchema, parseBrazilianCents, parseLocalDate, transactionSchema } from "@/lib/validation";
@@ -42,8 +44,8 @@ export async function createTransaction(formData: FormData) {
     if (!category) throw new Error("Categoria não encontrada.");
   }
 
-  await prisma.transaction.create({
-    data: {
+  await createTransactionUseCase(
+    {
       userId: user.id,
       accountId: account.id,
       categoryId: result.data.categoryId || null,
@@ -53,7 +55,8 @@ export async function createTransaction(formData: FormData) {
       occurredAt,
       notes: result.data.notes || null,
     },
-  });
+    createPrismaTransactionRepository(prisma),
+  );
   revalidatePaths("/", "/contas", "/lancamentos");
 }
 

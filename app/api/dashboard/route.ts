@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 
-import { requireUser } from "@/lib/auth";
+import { isAdminUser, requireUser } from "@/lib/auth";
 import { getDashboard, parseDashboardFilters } from "@/lib/dashboard";
 import { PRIVATE_NO_STORE_HEADERS } from "@/lib/http";
 
@@ -11,7 +11,8 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     const user = await requireUser();
-    if (!user.hasPaid) return NextResponse.json({ error: "Pagamento necessário." }, { status: 402, headers: PRIVATE_NO_STORE_HEADERS });
+    if (!user.hasPaid && !isAdminUser(user))
+      return NextResponse.json({ error: "Pagamento necessário." }, { status: 402, headers: PRIVATE_NO_STORE_HEADERS });
     const filters = parseDashboardFilters(new URL(request.url).searchParams);
     return NextResponse.json(await getDashboard(user.id, filters), { headers: PRIVATE_NO_STORE_HEADERS });
   } catch (error) {

@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 
+import { FinancialGoal } from "@/lib/domain/financial/financial-goal";
+import { Money } from "@/lib/domain/financial/money";
 import { requirePaidUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseBrazilianCents, parseLocalDate } from "@/lib/validation";
@@ -36,8 +38,12 @@ export async function createGoal(formData: FormData) {
   const savedCents = savedInput ? parseBrazilianCents(savedInput) : 0;
   if (!targetCents) throw new Error("Informe um valor alvo válido.");
   if (savedCents === null) throw new Error("Informe um valor guardado válido.");
-  if (savedCents > targetCents)
-    throw new Error("O valor guardado não pode superar o valor alvo.");
+  const goal = FinancialGoal.create({
+    userId: user.id,
+    name: result.data.name,
+    target: Money.fromCents(targetCents),
+    saved: Money.fromCents(savedCents),
+  });
   const deadline = result.data.deadline
     ? parseLocalDate(result.data.deadline)
     : null;
@@ -60,15 +66,15 @@ export async function createGoal(formData: FormData) {
     if (activeGoalCount >= MAX_ACTIVE_GOALS)
       throw new Error("Você atingiu o limite de metas ativas.");
 
-    const goal = await transaction.financialGoal.create({
+    const createdGoal = await transaction.financialGoal.create({
       data: {
         userId: user.id,
         accountId,
-        name: result.data.name,
+        name: goal.props.name,
         targetCents,
         savedCents,
         deadline,
-        status: savedCents === targetCents ? "COMPLETED" : "ACTIVE",
+        status: goal.props.status,
       },
     });
 
@@ -77,9 +83,9 @@ export async function createGoal(formData: FormData) {
         data: {
           userId: user.id,
           accountId,
-          goalId: goal.id,
+          goalId: createdGoal.id,
           type: "EXPENSE",
-          description: `Aporte inicial para meta: ${goal.name}`,
+          description: `Aporte inicial para meta: ${createdGoal.name}`,
           cents: savedCents,
           occurredAt: new Date(),
         },
@@ -119,9 +125,14 @@ export async function addGoalContribution(id: string, formData: FormData) {
       select: { savedCents: true, targetCents: true, accountId: true, name: true },
     });
     if (!goal) throw new Error("Meta não encontrada.");
-    const savedCents = goal.savedCents + cents;
-    if (savedCents > goal.targetCents)
-      throw new Error("O aporte não pode superar o valor alvo.");
+    const updatedGoal = FinancialGoal.create({
+      userId: user.id,
+      name: goal.name,
+      target: Money.fromCents(goal.targetCents),
+      saved: Money.fromCents(goal.savedCents),
+      status: "ACTIVE",
+    }).addContribution(Money.fromCents(cents));
+    const savedCents = updatedGoal.props.saved.cents;
 
     const updated = await transaction.financialGoal.updateMany({
       where: {
@@ -132,7 +143,7 @@ export async function addGoalContribution(id: string, formData: FormData) {
       },
       data: {
         savedCents,
-        status: savedCents === goal.targetCents ? "COMPLETED" : "ACTIVE",
+        status: updatedGoal.props.status,
       },
     });
     if (updated.count !== 1)
