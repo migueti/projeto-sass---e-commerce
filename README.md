@@ -8,7 +8,7 @@ O projeto também integra Mercado Pago para liberar o acesso pago e Pluggy para 
 
 - Next.js 16 e React 19
 - TypeScript, ESLint e Vitest
-- Prisma ORM com SQLite
+- Prisma ORM com PostgreSQL em produção
 - NextAuth Credentials com sessões JWT
 - Zod para validação de entradas
 - Mercado Pago Checkout Pro
@@ -23,7 +23,7 @@ O projeto também integra Mercado Pago para liberar o acesso pago e Pluggy para 
 Bun também pode ser usado dentro do pacote independente `pluggy mcp/`.
 
 ## Desenvolvimento local
-
+Para desenvolvimento local, você pode usar SQLite ou PostgreSQL. Para o deploy no Render, use PostgreSQL com uma URL externa persistente.
 ```bash
 npm install
 cp .env.example .env
@@ -44,7 +44,7 @@ O arquivo `.env` é carregado automaticamente pelo Next.js e não deve ser versi
 
 | Variável | Obrigatória | Descrição |
 | --- | --- | --- |
-| `DATABASE_URL` | sim | Banco Prisma. Localmente: `file:./dev.db` |
+| `DATABASE_URL` | sim | Banco Prisma. Em produção: PostgreSQL (Render) |
 | `NEXTAUTH_SECRET` | sim | Segredo forte para assinar sessões |
 | `NEXTAUTH_URL` | sim | URL pública exata da aplicação |
 | `APP_URL` | pagamentos | URL pública usada nos callbacks do Mercado Pago |
@@ -182,7 +182,7 @@ Configure as variáveis de ambiente no serviço Web e use:
 - **Build Command:** `npm install && npm run db:generate && npm run db:deploy && npm run build`
 - **Start Command:** `npm run start`
 
-Use `NEXTAUTH_URL` e `APP_URL` com a URL pública HTTPS do Render. Para webhooks Pluggy, configure `PLUGGY_WEBHOOK_URL` com essa mesma URL e o caminho `/api/webhooks/pluggy`. SQLite exige disco persistente e backup; em produção, um banco externo compatível é recomendado quando o filesystem for efêmero.
+Use `NEXTAUTH_URL` e `APP_URL` com a URL pública HTTPS do Render. Para webhooks Pluggy, configure `PLUGGY_WEBHOOK_URL` com essa mesma URL e o caminho `/api/webhooks/pluggy`. Para produção, prefira PostgreSQL em vez de SQLite; o SQLite local é útil apenas para desenvolvimento e não persiste corretamente em instâncias efêmeras do Render.
 
 ## Dados locais e licença
 
