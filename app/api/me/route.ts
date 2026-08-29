@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { requireUser } from "@/lib/auth";
+import { isAdminUser, requireUser } from "@/lib/auth";
 import { PRIVATE_NO_STORE_HEADERS } from "@/lib/http";
 
 export const runtime = "nodejs";
@@ -14,6 +14,8 @@ export async function GET() {
       name: user.name,
       email: user.email,
       image: user.image,
+      role: user.role,
+      isAdmin: isAdminUser(user),
     }, { headers: PRIVATE_NO_STORE_HEADERS });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {

@@ -2,6 +2,7 @@ import ExcelJS from "exceljs";
 import JSZip from "jszip";
 
 const MAX_IMPORT_ROWS = 500;
+const MONEY_AMOUNT_PATTERN = /(?<!\d)[+-]?(?:\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2}|\d+[.,]\d{2})[+-]?(?!\d)/;
 
 export type ImportedStatementRow = {
   date: string;
@@ -11,8 +12,17 @@ export type ImportedStatementRow = {
 };
 
 function amountToCents(value: string) {
-  const [whole, fraction] = value.replace(/\./g, "").split(",");
-  const cents = Number.parseInt(whole, 10) * 100 + Number.parseInt(fraction, 10);
+  const normalized = value.trim().replace(/\s+/g, "");
+  if (!normalized) return null;
+
+  const unsigned = normalized.replace(/^[-+]+/, "").replace(/[-+]+$/, "");
+  if (!/^(?:\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2}|\d+[.,]\d{2})$/.test(unsigned)) {
+    return null;
+  }
+
+  const decimalValue = Number.parseFloat(unsigned.replace(/\./g, "").replace(",", "."));
+  const cents = Math.round(Math.abs(decimalValue) * 100);
+
   return Number.isSafeInteger(cents) && cents > 0 ? cents : null;
 }
 
@@ -164,7 +174,7 @@ function parseStructuredRows(text: string): ImportedStatementRow[] {
 
     if (cells.length >= 3) {
       const dateCellIndex = cells.findIndex((cell) => /(\d{1,2})\/(\d{1,2})/.test(cell));
-      amountCellIndex = cells.findIndex((cell) => /(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2}|\d+[.,]\d{2})/.test(cell));
+      amountCellIndex = cells.findIndex((cell) => MONEY_AMOUNT_PATTERN.test(cell));
       if (amountCellIndex !== -1) {
         rawAmountCell = cells[amountCellIndex];
         const rawAmount = rawAmountCell.replace(/^[^\d\-]*/, "").replace(/\s+/g, "").trim();
@@ -193,7 +203,7 @@ function parseStructuredRows(text: string): ImportedStatementRow[] {
       }
     }
 
-    const amountMatch = /(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2}|\d+[.,]\d{2})/.exec(normalized);
+    const amountMatch = MONEY_AMOUNT_PATTERN.exec(normalized);
     if (!amountMatch) continue;
 
     rawAmountCell = amountMatch[0];
@@ -248,7 +258,7 @@ function parseMultilineEntries(text: string): ImportedStatementRow[] {
       if (/^(\d{1,2})\/(\d{1,2})(?:[ \t;|]|$)/.test(lines[j])) break;
       block.push(lines[j]);
       const combined = block.join(" ");
-      amountMatch = /(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2}|\d+[.,]\d{2})/.exec(combined);
+      amountMatch = MONEY_AMOUNT_PATTERN.exec(combined);
       if (amountMatch) {
         endIndex = j;
         break;
@@ -324,7 +334,7 @@ export function parseBankStatementText(text: string): ImportedStatementRow[] {
   const year = inferYear(text);
   const rows: ImportedStatementRow[] = [];
   const seen = new Set<string>();
-  const pattern = /(?:^|\n)[ \t]*(\d{1,2})\/(\d{1,2})[ \t]+(.+?)(?:[ \t]+R\$[ \t]*|[ \t]+)(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})(?:[ \t]*(DEBITO|DEBIT|CREDITO|CREDIT|SAIDA|ENTRADA))?(-)?[ \t]*(?=\n|$)/gi;
+  const pattern = /(?:^|\n)[ \t]*(\d{1,2})\/(\d{1,2})[ \t]+(.+?)(?:[ \t]+R\$[ \t]*|[ \t]+)((?<!\d)[+-]?(?:\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2}|\d+[.,]\d{2})[+-]?(?!\d))(?:[ \t]*(DEBITO|DEBIT|CREDITO|CREDIT|SAIDA|ENTRADA))?(-)?[ \t]*(?=\n|$)/gi;
 
   for (const match of text.matchAll(pattern)) {
     const [, day, month, rawDescription, rawAmount, trailingKeyword, negative] = match;

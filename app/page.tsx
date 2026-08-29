@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -51,20 +50,9 @@ const formatCurrency = (value: number) =>
     value,
   );
 
-const navItems = [
-  "Visão geral",
-  "Lançamentos",
-  "Contas",
-  "Categorias",
-  "Recorrências",
-  "Metas",
-];
-const navIcons = ["◒", "↕", "▣", "◈", "↻", "◎"];
-
 export default function Home() {
   const router = useRouter();
   const [period, setPeriod] = useState("Este mês");
-  const [activeNav, setActiveNav] = useState("Visão geral");
   const [showBalance, setShowBalance] = useState(true);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [dashboardLoading, setDashboardLoading] = useState(true);
@@ -80,16 +68,6 @@ export default function Home() {
       : period === "Últimos 30 dias"
         ? "30days"
         : "month";
-
-  const initials =
-    userName === "Sua conta"
-      ? "SC"
-      : userName
-          .split(" ")
-          .map((part) => part[0])
-          .join("")
-          .slice(0, 2)
-          .toUpperCase();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -181,77 +159,7 @@ export default function Home() {
   }
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <span className="brand-mark">✳</span>
-          <span>
-            nuvem<span className="brand-dot">.</span>
-          </span>
-        </div>
-        <div className="workspace-label">MEU ESPAÇO</div>
-        <nav className="nav-list">
-          {navItems.map((item, index) =>
-            item === "Lançamentos" ||
-            item === "Contas" ||
-            item === "Categorias" ||
-            item === "Metas" ||
-            item === "Recorrências" ? (
-              <Link
-                href={`/${item === "Lançamentos" ? "lancamentos" : item === "Contas" ? "contas" : item === "Categorias" ? "categorias" : item === "Metas" ? "metas" : "recorrencias"}`}
-                className={`nav-item ${activeNav === item ? "active" : ""}`}
-                key={item}
-                onClick={() => setActiveNav(item)}
-              >
-                <span className="nav-icon">{navIcons[index]}</span>
-                {item}
-              </Link>
-            ) : (
-              <button
-                className={`nav-item ${activeNav === item ? "active" : ""}`}
-                key={item}
-                onClick={() => setActiveNav(item)}
-              >
-                <span className="nav-icon">{navIcons[index]}</span>
-                {item}
-              </button>
-            ),
-          )}
-        </nav>
-        <div className="sidebar-bottom">
-          <button
-            className="nav-item"
-            onClick={async () => {
-              await signOut({ redirect: false });
-              router.replace("/login");
-            }}
-          >
-            <span className="nav-icon">↪</span>Sair
-          </button>
-          <div className="user-chip">
-            <div className="avatar">{initials}</div>
-            <div>
-              <strong>{userName}</strong>
-              <small>Plano gratuito</small>
-            </div>
-            <span className="more">•••</span>
-          </div>
-        </div>
-      </aside>
-
-      <main className="main-content">
-        <header className="topbar">
-          <div className="mobile-brand">
-            ✳ nuvem<span>.</span>
-          </div>
-          <div className="topbar-actions">
-            <button className="icon-button" aria-label="Notificações">
-              ♧<i />
-            </button>
-            <div className="top-avatar">{initials}</div>
-          </div>
-        </header>
-        <div className="content-wrap">
+    <div className="content-wrap">
           {dashboardError && (
             <div className="panel" role="alert">
               <p className="form-error">Não foi possível atualizar o resumo financeiro.</p>
@@ -391,8 +299,6 @@ export default function Home() {
             </Link>
           </div>
         </div>
-      </main>
-    </div>
   );
 }
 

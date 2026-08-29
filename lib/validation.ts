@@ -46,10 +46,12 @@ export const transactionSchema = z.object({
 });
 
 export function parseBrazilianCents(
-  value: string,
+  value: string | null | undefined,
   options: { allowZero?: boolean } = {},
 ) {
   const { allowZero = false } = options;
+  if (typeof value !== "string") return null;
+
   const raw = value.trim().replace(/^r\$\s?/i, "");
   if (!raw || raw.length > MAX_CURRENCY_INPUT_LENGTH) return null;
 
@@ -65,12 +67,15 @@ export function parseBrazilianCents(
   return cents <= maxCents ? Number(cents) : null;
 }
 
-export function parseLocalDate(value: string) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+export function parseLocalDate(value: string | null | undefined) {
+  if (typeof value !== "string") return null;
+
+  const normalized = value.trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized);
   if (!match) return null;
 
   const [, year, month, day] = match;
-  const date = new Date(`${value}T12:00:00.000Z`);
+  const date = new Date(`${normalized}T12:00:00.000Z`);
   if (
     Number.isNaN(date.getTime()) ||
     date.getUTCFullYear() !== Number(year) ||

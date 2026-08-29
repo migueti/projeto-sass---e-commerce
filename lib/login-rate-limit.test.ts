@@ -39,6 +39,22 @@ describe("login rate limit", () => {
     expect(consumeLoginAttempt(identifier, now)).toBe(true);
   });
 
+  it("normalizes email casing and whitespace before counting attempts", () => {
+    const now = 1_000;
+    const padded = `  ${identifier.toUpperCase()} \n`;
+
+    for (let attempt = 0; attempt < loginRateLimit.maxAttempts; attempt += 1) {
+      expect(consumeLoginAttempt(padded, now)).toBe(true);
+    }
+
+    expect(consumeLoginAttempt(identifier, now)).toBe(false);
+  });
+
+  it("rejects blank identifiers before tracking attempts", () => {
+    expect(consumeLoginAttempt(" ", 1_000)).toBe(false);
+    expect(consumeLoginAttempt("", 1_000)).toBe(false);
+  });
+
   it("keeps registration attempts isolated from login attempts", () => {
     const now = 1_000;
 

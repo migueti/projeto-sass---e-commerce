@@ -283,6 +283,7 @@ button { cursor: pointer; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-actions { display: flex; justify-content: flex-end; align-items: center; gap: 14px; margin-top: 4px; }
 .edit-panel { max-width: 700px; }
+.diagnostic-meta { margin-top: 15px; }
 
 /* ===== RECORDS & LISTS ===== */
 .records { margin-top: 16px; }

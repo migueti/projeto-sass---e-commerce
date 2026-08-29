@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getDashboardDateRange,
+  getDatePartsInTimeZone,
   exceedsDashboardLimit,
   MAX_DASHBOARD_ROWS,
   normalizeHistoricalTransactions,
@@ -38,6 +39,11 @@ describe("dashboard filters and periods", () => {
         new URLSearchParams("period=30days&accountId=account-1&categoryId=food"),
       ),
     ).toEqual({ period: "30days", accountId: "account-1", categoryId: "food" });
+    expect(
+      parseDashboardFilters(
+        new URLSearchParams("period=month&accountId=%20%20&categoryId=%20food%20"),
+      ),
+    ).toEqual({ period: "month", accountId: undefined, categoryId: "food" });
   });
 
   it("rejects unsupported periods", () => {
@@ -59,6 +65,21 @@ describe("dashboard filters and periods", () => {
     expect(getDashboardDateRange("year", referenceDate).start).toEqual(
       new Date("2026-01-01T03:00:00.000Z"),
     );
+  });
+
+  it("keeps only numeric date parts from Intl formatting", () => {
+    const parts = getDatePartsInTimeZone(new Date("2026-03-15T16:45:00.000Z"), "America/Sao_Paulo");
+
+    expect(parts).toMatchObject({
+      year: 2026,
+      month: 3,
+      day: 15,
+      hour: 13,
+      minute: 45,
+      second: 0,
+      millisecond: 0,
+    });
+    expect(Object.keys(parts)).toEqual(["year", "month", "day", "hour", "minute", "second", "millisecond"]);
   });
 
   it("uses the product timezone at a UTC month boundary", () => {

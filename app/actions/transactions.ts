@@ -135,6 +135,42 @@ export async function importTransactions(
   return result.count;
 }
 
+type GoalContributionClient = {
+  financialGoal: {
+    findFirst: typeof prisma.financialGoal.findFirst;
+    updateMany: typeof prisma.financialGoal.updateMany;
+  };
+};
+
+async function reconcileGoalContributions(
+  transactionClient: GoalContributionClient,
+  userId: string,
+  transactions: Array<{ cents: number; goalId: string | null }>,
+) {
+  const contributionsByGoal = new Map<string, number>();
+  for (const current of transactions) {
+    if (!current.goalId) continue;
+    contributionsByGoal.set(current.goalId, (contributionsByGoal.get(current.goalId) ?? 0) + current.cents);
+  }
+
+  for (const [goalId, cents] of contributionsByGoal) {
+    const goal = await transactionClient.financialGoal.findFirst({
+      where: { id: goalId, userId },
+      select: { savedCents: true, status: true },
+    });
+    if (!goal || goal.savedCents < cents) throw new Error("GOAL_CONTRIBUTION_INVALID");
+
+    const updated = await transactionClient.financialGoal.updateMany({
+      where: { id: goalId, userId, savedCents: goal.savedCents },
+      data: {
+        savedCents: { decrement: cents },
+        status: goal.status === "COMPLETED" ? "ACTIVE" : goal.status,
+      },
+    });
+    if (updated.count !== 1) throw new Error("GOAL_CONTRIBUTION_CONFLICT");
+  }
+}
+
 export async function deleteAllTransactions() {
   const user = await requirePaidUser();
 
@@ -143,28 +179,8 @@ export async function deleteAllTransactions() {
       where: { userId: user.id },
       select: { cents: true, goalId: true },
     });
-    const contributionsByGoal = new Map<string, number>();
-    for (const current of transactions) {
-      if (current.goalId)
-        contributionsByGoal.set(current.goalId, (contributionsByGoal.get(current.goalId) ?? 0) + current.cents);
-    }
 
-    for (const [goalId, cents] of contributionsByGoal) {
-      const goal = await transaction.financialGoal.findFirst({
-        where: { id: goalId, userId: user.id },
-        select: { savedCents: true, status: true },
-      });
-      if (!goal || goal.savedCents < cents) throw new Error("GOAL_CONTRIBUTION_INVALID");
-      const updated = await transaction.financialGoal.updateMany({
-        where: { id: goalId, userId: user.id, savedCents: goal.savedCents },
-        data: {
-          savedCents: { decrement: cents },
-          status: goal.status === "COMPLETED" ? "ACTIVE" : goal.status,
-        },
-      });
-      if (updated.count !== 1) throw new Error("GOAL_CONTRIBUTION_CONFLICT");
-    }
-
+    await reconcileGoalContributions(transaction, user.id, transactions);
     const deleted = await transaction.transaction.deleteMany({ where: { userId: user.id } });
     return deleted.count;
   }));
@@ -176,44 +192,25 @@ export async function deleteAccount(id: string) {
   const user = await requirePaidUser();
   const accountId = normalizeTransactionId(id);
 
-  const account = await prisma.financialAccount.findFirst({
-    where: { id: accountId, userId: user.id },
-    select: { id: true },
-  });
-  if (!account) throw new Error("Conta não encontrada.");
-
-  const transactions = await prisma.transaction.findMany({
-    where: { accountId: account.id, userId: user.id },
-    select: { cents: true, goalId: true },
-  });
-  const contributionsByGoal = new Map<string, number>();
-  for (const current of transactions) {
-    if (current.goalId) {
-      contributionsByGoal.set(current.goalId, (contributionsByGoal.get(current.goalId) ?? 0) + current.cents);
-    }
-  }
-
-  for (const [goalId, cents] of contributionsByGoal) {
-    const goal = await prisma.financialGoal.findFirst({
-      where: { id: goalId, userId: user.id },
-      select: { savedCents: true, status: true },
+  await withTransactionRetry(() => prisma.$transaction(async (transaction) => {
+    const account = await transaction.financialAccount.findFirst({
+      where: { id: accountId, userId: user.id },
+      select: { id: true },
     });
-    if (!goal || goal.savedCents < cents) throw new Error("GOAL_CONTRIBUTION_INVALID");
-    const updated = await prisma.financialGoal.updateMany({
-      where: { id: goalId, userId: user.id, savedCents: goal.savedCents },
-      data: {
-        savedCents: { decrement: cents },
-        status: goal.status === "COMPLETED" ? "ACTIVE" : goal.status,
-      },
+    if (!account) throw new Error("Conta não encontrada.");
+
+    const transactions = await transaction.transaction.findMany({
+      where: { accountId: account.id, userId: user.id },
+      select: { cents: true, goalId: true },
     });
-    if (updated.count !== 1) throw new Error("GOAL_CONTRIBUTION_CONFLICT");
-  }
 
-  await prisma.recurringTransaction.deleteMany({ where: { accountId: account.id, userId: user.id } });
-  await prisma.transaction.deleteMany({ where: { accountId: account.id, userId: user.id } });
+    await reconcileGoalContributions(transaction, user.id, transactions);
+    await transaction.recurringTransaction.deleteMany({ where: { accountId: account.id, userId: user.id } });
+    await transaction.transaction.deleteMany({ where: { accountId: account.id, userId: user.id } });
 
-  const deleted = await prisma.financialAccount.deleteMany({ where: { id: account.id, userId: user.id } });
-  if (deleted.count !== 1) throw new Error("Conta não encontrada.");
+    const deleted = await transaction.financialAccount.deleteMany({ where: { id: account.id, userId: user.id } });
+    if (deleted.count !== 1) throw new Error("Conta não encontrada.");
+  }));
 
   revalidateFinancialPaths();
 }

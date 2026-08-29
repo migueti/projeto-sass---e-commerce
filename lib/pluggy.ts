@@ -100,6 +100,24 @@ export async function createPluggyConnectToken(clientUserId: string) {
   });
 }
 
+export async function ensureOwnedPluggyAccount(pluggyAccountId: string, userId: string) {
+  const existing = await prisma.financialAccount.findFirst({
+    where: { pluggyAccountId },
+    select: { userId: true },
+  });
+
+  if (existing && existing.userId !== userId) throw new Error("PLUGGY_ITEM_NOT_OWNED");
+}
+
+export async function ensureOwnedPluggyTransaction(pluggyTransactionId: string, userId: string) {
+  const existing = await prisma.transaction.findFirst({
+    where: { pluggyTransactionId },
+    select: { userId: true },
+  });
+
+  if (existing && existing.userId !== userId) throw new Error("PLUGGY_ITEM_NOT_OWNED");
+}
+
 export async function syncPluggyItem(itemId: string, userId: string) {
   const apiKey = await getApiKey();
   const client = new Pluggy(apiKey, process.env.PLUGGY_API_BASE ?? DEFAULT_BASE_URL);
@@ -117,6 +135,8 @@ export async function syncPluggyItem(itemId: string, userId: string) {
 
   const accounts = (await client.fetchAccounts(itemId)).results;
   for (const account of accounts) {
+    await ensureOwnedPluggyAccount(account.id, userId);
+
     const savedAccount = await prisma.financialAccount.upsert({
       where: { pluggyAccountId: account.id },
       create: {
@@ -137,6 +157,8 @@ export async function syncPluggyItem(itemId: string, userId: string) {
     for (const transaction of transactions) {
       const cents = Math.round(Math.abs(transaction.amount) * 100);
       if (!cents) continue;
+
+      await ensureOwnedPluggyTransaction(transaction.id, userId);
       await prisma.transaction.upsert({
         where: { pluggyTransactionId: transaction.id },
         create: {
