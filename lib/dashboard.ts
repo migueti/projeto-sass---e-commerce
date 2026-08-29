@@ -120,10 +120,10 @@ export async function getDashboard(userId: string, filters: DashboardFilters) {
   };
 
   const [accounts, periodTransactions, historicalTransactions, goals, nextRecurrence] = await prisma.$transaction([
-    prisma.financialAccount.findMany({ where: { userId, ...(filters.accountId ? { id: filters.accountId } : {}) }, select: { initialCents: true } }),
+    prisma.financialAccount.findMany({ where: { userId, ...(filters.accountId ? { id: filters.accountId } : {}) }, select: { initialCents: true, type: true, pluggyAccountId: true } }),
     prisma.transaction.findMany({
       where: scopedWhere,
-      include: { account: { select: { id: true, name: true } }, category: { select: { id: true, name: true, color: true } } },
+      include: { account: { select: { id: true, name: true, type: true, pluggyAccountId: true } }, category: { select: { id: true, name: true, color: true } } },
       orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
       take: MAX_DASHBOARD_ROWS + 1,
     }),

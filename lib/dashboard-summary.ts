@@ -7,6 +7,10 @@ export type DashboardTransaction = {
     name: string;
     color: string | null;
   } | null;
+  account?: {
+    type?: string | null;
+    pluggyAccountId?: string | null;
+  };
 };
 
 type DashboardGoal = {
@@ -31,7 +35,7 @@ export function summarizeDashboard<
   goals,
   nextRecurrence,
 }: {
-  accounts: Array<{ initialCents: number }>;
+  accounts: Array<{ initialCents: number; type?: string | null; pluggyAccountId?: string | null }>;
   periodTransactions: TTransaction[];
   historicalTransactions: Array<Pick<DashboardTransaction, "type" | "cents">>;
   goals: TGoal[];
@@ -41,7 +45,8 @@ export function summarizeDashboard<
     (sum, item) => sum + (item.type === "INCOME" ? item.cents : -item.cents),
     0,
   );
-  const initialCents = accounts.reduce(
+  const cashAccounts = accounts.filter((account) => account.type !== "credit");
+  const initialCents = cashAccounts.reduce(
     (sum, account) => sum + account.initialCents,
     0,
   );
@@ -81,8 +86,13 @@ export function summarizeDashboard<
     monthlyFlow.set(month, current);
   }
 
+  const hasConnectedAccount = cashAccounts.some((account) => account.pluggyAccountId);
+  const balanceCents = hasConnectedAccount
+    ? initialCents
+    : initialCents + historicalCents + incomeCents - expenseCents;
+
   return {
-    balanceCents: initialCents + historicalCents + incomeCents - expenseCents,
+    balanceCents,
     incomeCents,
     expenseCents,
     netCents: incomeCents - expenseCents,
