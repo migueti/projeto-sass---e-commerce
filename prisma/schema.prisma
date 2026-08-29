@@ -48,6 +48,7 @@ model User {
   recurrences   RecurringTransaction[]
   goals         FinancialGoal[]
   payments      Payment[]
+  pluggyItems   PluggyItem[]
 }
 
 model AppSettings {
@@ -133,6 +134,7 @@ model FinancialAccount {
   color        String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  pluggyAccountId String?     @unique
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
   recurrences  RecurringTransaction[]
@@ -157,10 +159,24 @@ model Transaction {
   category    Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   goal        FinancialGoal?  @relation(fields: [goalId], references: [id], onDelete: Restrict)
   goalId      String?
+  pluggyTransactionId String?  @unique
   @@index([userId, occurredAt])
   @@index([userId, accountId])
   @@index([userId, categoryId])
   @@index([goalId])
+}
+
+model PluggyItem {
+  id            String   @id @default(cuid())
+  userId        String
+  itemId        String
+  connectorName String
+  status        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, itemId])
+  @@index([userId])
 }
 
 model RecurringTransaction {
