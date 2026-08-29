@@ -68,7 +68,7 @@ export function AdminPluggyPanel() {
       {token && (
         <PluggyConnect
           connectToken={token}
-          includeSandbox={process.env.NODE_ENV !== "production"}
+          includeSandbox={process.env.NEXT_PUBLIC_PLUGGY_INCLUDE_SANDBOX === "true"}
           onSuccess={() => setToken("")}
           onError={(error) => setError(error.message || "Não foi possível concluir a conexão.")}
           onLoadError={() => setError("Não foi possível carregar o Pluggy Connect.")}

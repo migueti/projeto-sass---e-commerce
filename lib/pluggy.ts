@@ -25,6 +25,10 @@ export function getPluggyWebhookUrl() {
   }
 }
 
+export function shouldAvoidPluggyDuplicates(value = process.env.PLUGGY_AVOID_DUPLICATES) {
+  return value?.trim().toLowerCase() !== "false";
+}
+
 async function getApiKey() {
   if (cachedApiKey && cachedApiKey.expiresAt - Date.now() > API_KEY_MIN_TTL_MS)
     return cachedApiKey.value;
@@ -54,7 +58,7 @@ export async function createPluggyConnectToken(clientUserId: string) {
   return client.createConnectToken(undefined, {
     clientUserId,
     webhookUrl: getPluggyWebhookUrl(),
-    avoidDuplicates: true,
+    avoidDuplicates: shouldAvoidPluggyDuplicates(),
   });
 }
 

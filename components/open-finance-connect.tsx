@@ -33,7 +33,7 @@ export function OpenFinanceConnect() {
   return (
     <PluggyConnect
       connectToken={connectToken}
-      includeSandbox={process.env.NODE_ENV !== "production"}
+      includeSandbox={process.env.NEXT_PUBLIC_PLUGGY_INCLUDE_SANDBOX === "true"}
       onSuccess={() => undefined}
       onError={(error) => setError(error.message || "Não foi possível concluir a conexão bancária.")}
       onLoadError={() => setError("Não foi possível carregar a conexão bancária.")}
