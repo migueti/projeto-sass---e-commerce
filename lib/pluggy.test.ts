@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { getPluggyWebhookUrl } from "@/lib/pluggy";
+import { getPluggyWebhookUrl, shouldAvoidPluggyDuplicates } from "@/lib/pluggy";
 
 describe("getPluggyWebhookUrl", () => {
   const originalValue = process.env.PLUGGY_WEBHOOK_URL;
@@ -19,5 +19,11 @@ describe("getPluggyWebhookUrl", () => {
 
     process.env.PLUGGY_WEBHOOK_URL = "http://localhost:3000/api/webhooks/pluggy";
     expect(getPluggyWebhookUrl()).toBeUndefined();
+  });
+
+  it("permite duplicidades somente quando configurado para sandbox", () => {
+    expect(shouldAvoidPluggyDuplicates("false")).toBe(false);
+    expect(shouldAvoidPluggyDuplicates("true")).toBe(true);
+    expect(shouldAvoidPluggyDuplicates(undefined)).toBe(true);
   });
 });

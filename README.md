@@ -105,7 +105,11 @@ PLUGGY_CLIENT_ID=seu-client-id-real
 PLUGGY_CLIENT_SECRET=seu-client-secret-real
 PLUGGY_API_BASE=https://api.pluggy.ai
 PLUGGY_WEBHOOK_URL=https://seu-dominio.com/api/webhooks/pluggy
+PLUGGY_AVOID_DUPLICATES=true
+NEXT_PUBLIC_PLUGGY_INCLUDE_SANDBOX=false
 ```
+
+Para testar o conector MyPluggy em ambiente sandbox, use `PLUGGY_AVOID_DUPLICATES=false` e `NEXT_PUBLIC_PLUGGY_INCLUDE_SANDBOX=true`. Em produção com instituições reais, mantenha duplicidades bloqueadas.
 
 ## Rotas principais
 
