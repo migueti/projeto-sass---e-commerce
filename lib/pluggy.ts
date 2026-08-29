@@ -55,6 +55,42 @@ async function getApiKey() {
   return data.apiKey;
 }
 
+type PluggyTransactionPage = {
+  results: Array<{
+    id: string;
+    description?: string | null;
+    amount: number;
+    date: string;
+  }>;
+  next?: string | null;
+};
+
+async function fetchPluggyTransactions(accountId: string, apiKey: string) {
+  const transactions: PluggyTransactionPage["results"] = [];
+  let next: string | null = null;
+
+  for (let page = 0; page < 20; page += 1) {
+    const url = new URL("/v2/transactions", process.env.PLUGGY_API_BASE ?? DEFAULT_BASE_URL);
+    url.searchParams.set("accountId", accountId);
+    if (next) url.searchParams.set("after", next);
+
+    const response = await fetch(url, {
+      headers: { "X-API-KEY": apiKey },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) throw new Error("PLUGGY_TRANSACTIONS_FAILED");
+
+    const data = await response.json() as PluggyTransactionPage;
+    transactions.push(...data.results);
+    if (!data.next) break;
+    const nextUrl = new URL(data.next, url.origin);
+    next = nextUrl.searchParams.get("after");
+    if (!next) break;
+  }
+
+  return transactions;
+}
+
 export async function createPluggyConnectToken(clientUserId: string) {
   const client = new Pluggy(await getApiKey(), process.env.PLUGGY_API_BASE ?? DEFAULT_BASE_URL);
   return client.createConnectToken(undefined, {
@@ -65,7 +101,8 @@ export async function createPluggyConnectToken(clientUserId: string) {
 }
 
 export async function syncPluggyItem(itemId: string, userId: string) {
-  const client = new Pluggy(await getApiKey(), process.env.PLUGGY_API_BASE ?? DEFAULT_BASE_URL);
+  const apiKey = await getApiKey();
+  const client = new Pluggy(apiKey, process.env.PLUGGY_API_BASE ?? DEFAULT_BASE_URL);
   let item = await client.fetchItem(itemId);
   if (item.clientUserId && item.clientUserId !== userId) throw new Error("PLUGGY_ITEM_NOT_OWNED");
 
@@ -96,7 +133,7 @@ export async function syncPluggyItem(itemId: string, userId: string) {
       select: { id: true },
     });
 
-    const transactions = (await client.fetchTransactions(account.id, { page: 1, pageSize: 500 })).results;
+    const transactions = await fetchPluggyTransactions(account.id, apiKey);
     for (const transaction of transactions) {
       const cents = Math.round(Math.abs(transaction.amount) * 100);
       if (!cents) continue;
