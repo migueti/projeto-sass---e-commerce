@@ -10,12 +10,14 @@ const mocks = vi.hoisted(() => ({
   financialAccountDeleteMany: vi.fn(),
   financialGoalFindFirst: vi.fn(),
   goalUpdateMany: vi.fn(),
+  prismaTransaction: vi.fn(),
   revalidatePath: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({ requirePaidUser: mocks.requirePaidUser }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
+    $transaction: mocks.prismaTransaction,
     financialAccount: {
       create: mocks.create,
       findFirst: mocks.findFirst,
@@ -75,6 +77,23 @@ describe("deleteAccount", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.requirePaidUser.mockResolvedValue({ id: "user-1", hasPaid: true });
+    mocks.prismaTransaction.mockImplementation(async (callback) => callback({
+      financialAccount: {
+        findFirst: mocks.findFirst,
+        deleteMany: mocks.financialAccountDeleteMany,
+      },
+      transaction: {
+        findMany: mocks.transactionFindMany,
+        deleteMany: mocks.transactionDeleteMany,
+      },
+      recurringTransaction: {
+        deleteMany: mocks.recurringDeleteMany,
+      },
+      financialGoal: {
+        findFirst: mocks.financialGoalFindFirst,
+        updateMany: mocks.goalUpdateMany,
+      },
+    }));
   });
 
   it("removes the account and its related data for the logged user", async () => {

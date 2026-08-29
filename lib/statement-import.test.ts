@@ -20,6 +20,13 @@ describe("parseBankStatementText", () => {
     ]);
   });
 
+  it("ignores malformed amounts with extra decimal precision", () => {
+    const text = "01/12 COMPRA DUPLICADA 1.200,000\n02/12 PIX RECEBIDO MARIANA 1.250,00";
+    expect(parseBankStatementText(text)).toEqual([
+      { date: "2026-12-02", description: "PIX RECEBIDO MARIANA", cents: 125000, type: "INCOME" },
+    ]);
+  });
+
   it("parses lines with R$ prefixes and longer descriptions", () => {
     const text = "junho/2026\n01/06 TRANSFERENCIA PARA JUAN R$ 1.234,56-\n02/06 PIX RECEBIDO MARIA R$ 89,90";
     expect(parseBankStatementText(text)).toEqual([

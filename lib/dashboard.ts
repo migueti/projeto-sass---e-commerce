@@ -56,7 +56,7 @@ type DateParts = {
   millisecond: number;
 };
 
-function getDatePartsInTimeZone(date: Date, timeZone: string): DateParts {
+export function getDatePartsInTimeZone(date: Date, timeZone: string): DateParts {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
     year: "numeric",
@@ -67,8 +67,26 @@ function getDatePartsInTimeZone(date: Date, timeZone: string): DateParts {
     second: "2-digit",
     hourCycle: "h23",
   }).formatToParts(date);
-  const values = Object.fromEntries(parts.map(({ type, value }) => [type, Number(value)]));
-  return { ...values, millisecond: date.getUTCMilliseconds() } as DateParts;
+
+  const values = Object.fromEntries(
+    parts.flatMap(({ type, value }) => {
+      if (!["year", "month", "day", "hour", "minute", "second"].includes(type)) {
+        return [];
+      }
+
+      return [[type, Number.parseInt(value, 10)]];
+    }),
+  );
+
+  return {
+    year: values.year ?? 0,
+    month: values.month ?? 0,
+    day: values.day ?? 0,
+    hour: values.hour ?? 0,
+    minute: values.minute ?? 0,
+    second: values.second ?? 0,
+    millisecond: date.getUTCMilliseconds(),
+  };
 }
 
 function shiftCalendarDate(parts: DateParts, days: number) {
@@ -140,8 +158,18 @@ export async function getDashboard(userId: string, filters: DashboardFilters) {
   };
 }
 
+function normalizeOptionalFilter(value: string | null) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 export function parseDashboardFilters(searchParams: URLSearchParams): DashboardFilters {
-  const period = searchParams.get("period") ?? "month";
+  const period = normalizeOptionalFilter(searchParams.get("period")) ?? "month";
   if (period !== "month" && period !== "30days" && period !== "year") throw new Error("INVALID_PERIOD");
-  return { period, accountId: searchParams.get("accountId") || undefined, categoryId: searchParams.get("categoryId") || undefined };
+
+  return {
+    period,
+    accountId: normalizeOptionalFilter(searchParams.get("accountId")),
+    categoryId: normalizeOptionalFilter(searchParams.get("categoryId")),
+  };
 }

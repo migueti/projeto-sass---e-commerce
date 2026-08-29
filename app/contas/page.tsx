@@ -3,6 +3,7 @@ import { requirePaidUser } from "@/lib/auth";
 import { summarizeAccountTransactions } from "@/lib/accounts";
 import { prisma } from "@/lib/prisma";
 import { AccountForm } from "@/components/account-form";
+import { DeleteAccountButton } from "@/components/delete-account-button";
 import { OpenFinanceConnect } from "@/components/open-finance-connect";
 
 const money = (cents: number) =>
@@ -71,11 +72,10 @@ export default async function AccountsPage() {
                       <b className={(summary?.balanceCents ?? 0) >= 0 ? "positive" : "negative"}>
                         {money(summary?.balanceCents ?? account.initialCents)}
                       </b>
-                      <form action={deleteAccount.bind(null, account.id)}>
-                        <button className="delete-button" type="submit" aria-label={`Excluir conta ${account.name}`}>
-                          ×
-                        </button>
-                      </form>
+                      <DeleteAccountButton
+                        action={deleteAccount.bind(null, account.id)}
+                        accountName={account.name}
+                      />
                     </div>
                   </div>
                 );

@@ -18,6 +18,18 @@ describe("parseLocalDate", () => {
   it("rejects impossible calendar dates", () => {
     expect(parseLocalDate("2026-02-30")).toBeNull();
   });
+
+  it("accepts whitespace-padded civil dates", () => {
+    const parsed = parseLocalDate(" 2026-03-01 \n");
+
+    expect(parsed?.toISOString()).toBe("2026-03-01T12:00:00.000Z");
+  });
+
+  it("rejects non-string inputs without throwing", () => {
+    expect(parseLocalDate(undefined as never)).toBeNull();
+    expect(parseBrazilianCents(undefined as never)).toBeNull();
+    expect(parseBrazilianCents(null as never)).toBeNull();
+  });
 });
 
 describe("parseBrazilianCents", () => {

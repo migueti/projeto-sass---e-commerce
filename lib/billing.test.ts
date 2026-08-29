@@ -5,6 +5,7 @@ import { initialPlanPriceCents } from "@/lib/billing";
 describe("initialPlanPriceCents", () => {
   it("converts a valid BRL configuration to integer cents", () => {
     expect(initialPlanPriceCents("29.90")).toBe(2990);
+    expect(initialPlanPriceCents("  49.99  ")).toBe(4999);
   });
 
   it("falls back for missing, invalid, zero, or negative values", () => {
@@ -12,6 +13,7 @@ describe("initialPlanPriceCents", () => {
     expect(initialPlanPriceCents("not-a-price")).toBe(2990);
     expect(initialPlanPriceCents("0")).toBe(2990);
     expect(initialPlanPriceCents("-10")).toBe(2990);
+    expect(initialPlanPriceCents("1e3")).toBe(2990);
   });
 
   it("falls back when the value cannot fit in a Prisma Int", () => {

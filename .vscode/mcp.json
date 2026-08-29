@@ -1,4 +1,30 @@
 {
+	"inputs": [
+		{
+			"id": "CONTEXT7_API_KEY",
+			"type": "promptString",
+			"description": "API key for authentication",
+			"password": true
+		},
+		{
+			"id": "token",
+			"type": "promptString",
+			"description": "",
+			"password": true
+		},
+		{
+			"id": "PLUGGY_CLIENT_ID",
+			"type": "promptString",
+			"description": "Pluggy Client ID",
+			"password": true
+		},
+		{
+			"id": "PLUGGY_CLIENT_SECRET",
+			"type": "promptString",
+			"description": "Pluggy Client Secret",
+			"password": true
+		}
+	],
 	"servers": {
 		"engenharia-local": {
 			"command": "node",
@@ -54,31 +80,5 @@
 			"gallery": "https://api.mcp.github.com",
 			"version": "1.0.0"
 		}
-	},
-	"inputs": [
-		{
-			"id": "CONTEXT7_API_KEY",
-			"type": "promptString",
-			"description": "API key for authentication",
-			"password": true
-		},
-		{
-			"id": "token",
-			"type": "promptString",
-			"description": "",
-			"password": true
-		},
-		{
-			"id": "PLUGGY_CLIENT_ID",
-			"type": "promptString",
-			"description": "Pluggy Client ID",
-			"password": true
-		},
-		{
-			"id": "PLUGGY_CLIENT_SECRET",
-			"type": "promptString",
-			"description": "Pluggy Client Secret",
-			"password": true
-		}
-	]
+	}
 }
