@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import nextConfig from "./next.config";
 
 describe("next config security headers", () => {
-  it("does not disable unload permission because Pluggy iframe needs it", async () => {
+  it("allows unload only for the Pluggy iframe origin", async () => {
     const headers = await nextConfig.headers?.();
 
     expect(headers).toBeTruthy();
@@ -12,6 +12,6 @@ describe("next config security headers", () => {
     );
 
     expect(permissionsHeader).toBeDefined();
-    expect(permissionsHeader?.value).not.toContain("unload");
+    expect(permissionsHeader?.value).toContain('unload=(self "https://connect.pluggy.ai")');
   });
 });

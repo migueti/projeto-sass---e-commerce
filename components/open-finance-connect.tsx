@@ -35,7 +35,7 @@ export function OpenFinanceConnect() {
       connectToken={connectToken}
       includeSandbox={process.env.NODE_ENV !== "production"}
       onSuccess={() => undefined}
-      onError={() => setError("Não foi possível concluir a conexão bancária.")}
+      onError={(error) => setError(error.message || "Não foi possível concluir a conexão bancária.")}
       onLoadError={() => setError("Não foi possível carregar a conexão bancária.")}
     />
   );
