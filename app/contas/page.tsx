@@ -1,3 +1,4 @@
+import { deleteAccount } from "@/app/actions/transactions";
 import { requirePaidUser } from "@/lib/auth";
 import { summarizeAccountTransactions } from "@/lib/accounts";
 import { prisma } from "@/lib/prisma";
@@ -66,9 +67,16 @@ export default async function AccountsPage() {
                         {summary?.transactionCount ?? 0} lançamento(s)
                       </small>
                     </div>
-                    <b className={(summary?.balanceCents ?? 0) >= 0 ? "positive" : "negative"}>
-                      {money(summary?.balanceCents ?? account.initialCents)}
-                    </b>
+                    <div className="record-actions">
+                      <b className={(summary?.balanceCents ?? 0) >= 0 ? "positive" : "negative"}>
+                        {money(summary?.balanceCents ?? account.initialCents)}
+                      </b>
+                      <form action={deleteAccount.bind(null, account.id)}>
+                        <button className="delete-button" type="submit" aria-label={`Excluir conta ${account.name}`}>
+                          ×
+                        </button>
+                      </form>
+                    </div>
                   </div>
                 );
               })
