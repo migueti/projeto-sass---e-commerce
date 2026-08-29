@@ -291,6 +291,7 @@ button { cursor: pointer; }
 .record { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 0; border-top: 1px solid var(--record-line); color: var(--label); }
 .record strong { display: block; font-size: 12px; }
 .record small { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
+.record-actions { display: flex; align-items: center; gap: 8px; }
 .records form { margin-left: 8px; }
 .category-record-name { display: flex; align-items: center; gap: 9px; }
 .category-record-name i { width: 10px; height: 10px; border-radius: 50%; }

@@ -3,16 +3,40 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   requirePaidUser: vi.fn(),
   create: vi.fn(),
+  findFirst: vi.fn(),
+  transactionFindMany: vi.fn(),
+  transactionDeleteMany: vi.fn(),
+  recurringDeleteMany: vi.fn(),
+  financialAccountDeleteMany: vi.fn(),
+  financialGoalFindFirst: vi.fn(),
+  goalUpdateMany: vi.fn(),
   revalidatePath: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({ requirePaidUser: mocks.requirePaidUser }));
 vi.mock("@/lib/prisma", () => ({
-  prisma: { financialAccount: { create: mocks.create } },
+  prisma: {
+    financialAccount: {
+      create: mocks.create,
+      findFirst: mocks.findFirst,
+      deleteMany: mocks.financialAccountDeleteMany,
+    },
+    transaction: {
+      findMany: mocks.transactionFindMany,
+      deleteMany: mocks.transactionDeleteMany,
+    },
+    recurringTransaction: {
+      deleteMany: mocks.recurringDeleteMany,
+    },
+    financialGoal: {
+      findFirst: mocks.financialGoalFindFirst,
+      updateMany: mocks.goalUpdateMany,
+    },
+  },
 }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
-import { createAccount } from "@/app/actions/transactions";
+import { createAccount, deleteAccount } from "@/app/actions/transactions";
 
 function accountForm(overrides: Record<string, string> = {}) {
   const formData = new FormData();
@@ -43,6 +67,38 @@ describe("createAccount", () => {
     expect(mocks.create).toHaveBeenCalledWith({
       data: { name: "Nubank", type: "checking", initialCents: 10_000, userId: "user-1" },
     });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/contas");
+  });
+});
+
+describe("deleteAccount", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.requirePaidUser.mockResolvedValue({ id: "user-1", hasPaid: true });
+  });
+
+  it("removes the account and its related data for the logged user", async () => {
+    mocks.findFirst.mockResolvedValue({ id: "account-1", userId: "user-1" });
+
+    mocks.transactionFindMany.mockResolvedValue([
+      { goalId: "goal-1", cents: 1500 },
+      { goalId: null, cents: 2500 },
+    ]);
+    mocks.financialGoalFindFirst.mockResolvedValue({ savedCents: 1500, status: "ACTIVE" });
+    mocks.goalUpdateMany.mockResolvedValue({ count: 1 });
+    mocks.transactionDeleteMany.mockResolvedValue({ count: 2 });
+    mocks.recurringDeleteMany.mockResolvedValue({ count: 1 });
+    mocks.financialAccountDeleteMany.mockResolvedValue({ count: 1 });
+
+    await expect(deleteAccount("account-1")).resolves.toBeUndefined();
+
+    expect(mocks.goalUpdateMany).toHaveBeenCalledWith({
+      where: { id: "goal-1", userId: "user-1", savedCents: 1500 },
+      data: { savedCents: { decrement: 1500 }, status: "ACTIVE" },
+    });
+    expect(mocks.recurringDeleteMany).toHaveBeenCalledWith({ where: { accountId: "account-1", userId: "user-1" } });
+    expect(mocks.transactionDeleteMany).toHaveBeenCalledWith({ where: { accountId: "account-1", userId: "user-1" } });
+    expect(mocks.financialAccountDeleteMany).toHaveBeenCalledWith({ where: { id: "account-1", userId: "user-1" } });
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/contas");
   });
 });
