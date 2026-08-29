@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const PluggyConnect = dynamic(
@@ -9,6 +10,7 @@ const PluggyConnect = dynamic(
 );
 
 export function OpenFinanceConnect() {
+  const router = useRouter();
   const [connectToken, setConnectToken] = useState("");
   const [error, setError] = useState("");
 
@@ -34,7 +36,18 @@ export function OpenFinanceConnect() {
     <PluggyConnect
       connectToken={connectToken}
       includeSandbox={process.env.NEXT_PUBLIC_PLUGGY_INCLUDE_SANDBOX === "true"}
-      onSuccess={() => undefined}
+      onSuccess={async ({ item }) => {
+        const response = await fetch("/api/pluggy/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ itemId: item.id }),
+        });
+        if (!response.ok) {
+          setError("A conta conectou, mas não foi possível importar os dados.");
+          return;
+        }
+        router.refresh();
+      }}
       onError={(error) => setError(error.message || "Não foi possível concluir a conexão bancária.")}
       onLoadError={() => setError("Não foi possível carregar a conexão bancária.")}
     />

@@ -1,5 +1,7 @@
 import Pluggy, { type Connector } from "pluggy-js";
 
+import { prisma } from "@/lib/prisma";
+
 const DEFAULT_BASE_URL = "https://api.pluggy.ai";
 const API_KEY_MIN_TTL_MS = 60_000;
 
@@ -60,6 +62,63 @@ export async function createPluggyConnectToken(clientUserId: string) {
     webhookUrl: getPluggyWebhookUrl(),
     avoidDuplicates: shouldAvoidPluggyDuplicates(),
   });
+}
+
+export async function syncPluggyItem(itemId: string, userId: string) {
+  const client = new Pluggy(await getApiKey(), process.env.PLUGGY_API_BASE ?? DEFAULT_BASE_URL);
+  const item = await client.fetchItem(itemId);
+  if (item.clientUserId !== userId) throw new Error("PLUGGY_ITEM_NOT_OWNED");
+
+  const accounts = (await client.fetchAccounts(itemId)).results;
+  for (const account of accounts) {
+    const savedAccount = await prisma.financialAccount.upsert({
+      where: { pluggyAccountId: account.id },
+      create: {
+        userId,
+        name: account.name || item.connector.name,
+        type: account.subtype === "CREDIT_CARD" ? "credit" : account.subtype === "SAVINGS_ACCOUNT" ? "savings" : "checking",
+        initialCents: Math.round(account.balance * 100),
+        pluggyAccountId: account.id,
+      },
+      update: {
+        name: account.name || item.connector.name,
+        initialCents: Math.round(account.balance * 100),
+      },
+      select: { id: true },
+    });
+
+    const transactions = (await client.fetchTransactions(account.id, { page: 1, pageSize: 500 })).results;
+    for (const transaction of transactions) {
+      const cents = Math.round(Math.abs(transaction.amount) * 100);
+      if (!cents) continue;
+      await prisma.transaction.upsert({
+        where: { pluggyTransactionId: transaction.id },
+        create: {
+          userId,
+          accountId: savedAccount.id,
+          description: transaction.description || "Transação bancária",
+          type: transaction.amount >= 0 ? "INCOME" : "EXPENSE",
+          cents,
+          occurredAt: transaction.date,
+          pluggyTransactionId: transaction.id,
+        },
+        update: {
+          accountId: savedAccount.id,
+          description: transaction.description || "Transação bancária",
+          type: transaction.amount >= 0 ? "INCOME" : "EXPENSE",
+          cents,
+          occurredAt: transaction.date,
+        },
+      });
+    }
+  }
+
+  await prisma.pluggyItem.upsert({
+    where: { userId_itemId: { userId, itemId } },
+    create: { userId, itemId, connectorName: item.connector.name, status: item.status },
+    update: { connectorName: item.connector.name, status: item.status },
+  });
+  return { accountCount: accounts.length };
 }
 
 export async function listPluggyConnectors() {
