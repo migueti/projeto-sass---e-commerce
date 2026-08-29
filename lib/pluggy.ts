@@ -66,8 +66,17 @@ export async function createPluggyConnectToken(clientUserId: string) {
 
 export async function syncPluggyItem(itemId: string, userId: string) {
   const client = new Pluggy(await getApiKey(), process.env.PLUGGY_API_BASE ?? DEFAULT_BASE_URL);
-  const item = await client.fetchItem(itemId);
-  if (item.clientUserId !== userId) throw new Error("PLUGGY_ITEM_NOT_OWNED");
+  let item = await client.fetchItem(itemId);
+  if (item.clientUserId && item.clientUserId !== userId) throw new Error("PLUGGY_ITEM_NOT_OWNED");
+
+  for (let attempt = 0; attempt < 10 && item.status !== "UPDATED"; attempt += 1) {
+    if (item.status === "LOGIN_ERROR" || item.status === "OUTDATED")
+      throw new Error("PLUGGY_ITEM_FAILED");
+    if (item.status === "WAITING_USER_INPUT") throw new Error("PLUGGY_ITEM_WAITING_INPUT");
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+    item = await client.fetchItem(itemId);
+  }
+  if (item.status !== "UPDATED") throw new Error("PLUGGY_ITEM_NOT_READY");
 
   const accounts = (await client.fetchAccounts(itemId)).results;
   for (const account of accounts) {
