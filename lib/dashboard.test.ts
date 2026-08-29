@@ -120,6 +120,10 @@ describe("summarizeDashboard", () => {
         nextOccurrence: date("2026-04-05"),
         endAt: null,
       },
+      allCategories: [
+        { id: "food", name: "Alimentação", color: "#e78c7d" },
+        { id: "transport", name: "Transporte", color: "#9284b5" },
+      ],
     });
 
     expect(summary).toMatchObject({
@@ -164,6 +168,7 @@ describe("summarizeDashboard", () => {
       ],
       goals: [],
       nextRecurrence: null,
+      allCategories: [],
     });
 
     expect(summary.categories).toEqual([]);
@@ -177,6 +182,7 @@ describe("summarizeDashboard", () => {
       periodTransactions: [],
       goals: [],
       nextRecurrence: null,
+      allCategories: [],
     });
 
     expect(summary.balanceCents).toBe(-1_000);
@@ -201,6 +207,7 @@ describe("summarizeDashboard", () => {
       ],
       goals: [],
       nextRecurrence: null,
+      allCategories: [],
     });
 
     expect(summary.balanceCents).toBe(-49_842);

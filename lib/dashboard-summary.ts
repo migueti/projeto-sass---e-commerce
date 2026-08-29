@@ -34,12 +34,14 @@ export function summarizeDashboard<
   historicalTransactions,
   goals,
   nextRecurrence,
+  allCategories,
 }: {
   accounts: Array<{ initialCents: number; type?: string | null; pluggyAccountId?: string | null }>;
   periodTransactions: TTransaction[];
   historicalTransactions: Array<Pick<DashboardTransaction, "type" | "cents">>;
   goals: TGoal[];
   nextRecurrence: TRecurrence | null;
+  allCategories: Array<{ id: string; name: string; color: string | null }>;
 }) {
   const historicalCents = historicalTransactions.reduce(
     (sum, item) => sum + (item.type === "INCOME" ? item.cents : -item.cents),
@@ -54,6 +56,16 @@ export function summarizeDashboard<
     string,
     { name: string; color: string | null; cents: number }
   >();
+  
+  // Initialize categoryTotals with all user categories
+  for (const category of allCategories) {
+    categoryTotals.set(category.id, {
+      name: category.name,
+      color: category.color,
+      cents: 0,
+    });
+  }
+  
   const monthlyFlow = new Map<
     string,
     { month: string; incomeCents: number; expenseCents: number }
@@ -75,13 +87,17 @@ export function summarizeDashboard<
       expenseCents += transaction.cents;
       current.expenseCents += transaction.cents;
       const key = transaction.category?.id ?? "uncategorized";
-      const category = categoryTotals.get(key) ?? {
-        name: transaction.category?.name ?? "Sem categoria",
-        color: transaction.category?.color ?? "#b8a6ce",
-        cents: 0,
-      };
+      let category = categoryTotals.get(key);
+      if (!category) {
+        // Only create a new category entry if it's uncategorized
+        category = {
+          name: transaction.category?.name ?? "Sem categoria",
+          color: transaction.category?.color ?? "#b8a6ce",
+          cents: 0,
+        };
+        categoryTotals.set(key, category);
+      }
       category.cents += transaction.cents;
-      categoryTotals.set(key, category);
     }
     monthlyFlow.set(month, current);
   }

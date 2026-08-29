@@ -119,7 +119,7 @@ export async function getDashboard(userId: string, filters: DashboardFilters) {
     ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
   };
 
-  const [accounts, periodTransactions, historicalTransactions, goals, nextRecurrence] = await prisma.$transaction([
+  const [accounts, periodTransactions, historicalTransactions, goals, nextRecurrence, allCategories] = await prisma.$transaction([
     prisma.financialAccount.findMany({ where: { userId, ...(filters.accountId ? { id: filters.accountId } : {}) }, select: { initialCents: true, type: true, pluggyAccountId: true } }),
     prisma.transaction.findMany({
       where: scopedWhere,
@@ -139,6 +139,7 @@ export async function getDashboard(userId: string, filters: DashboardFilters) {
       include: { account: { select: { id: true, name: true } }, category: { select: { id: true, name: true } } },
       orderBy: { nextOccurrence: "asc" },
     }),
+    prisma.category.findMany({ where: { userId }, select: { id: true, name: true, color: true } }),
   ]);
 
   if (exceedsDashboardLimit(periodTransactions.length))
@@ -150,6 +151,7 @@ export async function getDashboard(userId: string, filters: DashboardFilters) {
     historicalTransactions: normalizeHistoricalTransactions(historicalTransactions),
     goals,
     nextRecurrence,
+    allCategories: filters.categoryId ? [] : allCategories,
   });
 
   return {
