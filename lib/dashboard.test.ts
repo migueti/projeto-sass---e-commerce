@@ -181,4 +181,28 @@ describe("summarizeDashboard", () => {
 
     expect(summary.balanceCents).toBe(-1_000);
   });
+
+  it("excludes credit cards and does not replay connected account history", () => {
+    const summary = summarizeDashboard({
+      accounts: [
+        { initialCents: -49_842, type: "checking", pluggyAccountId: "pluggy-checking" },
+        { initialCents: 23_748, type: "credit", pluggyAccountId: "pluggy-credit" },
+      ],
+      historicalTransactions: [{ type: "EXPENSE", cents: 70_000 }],
+      periodTransactions: [
+        {
+          id: "imported-expense",
+          type: "EXPENSE",
+          cents: 70_000,
+          occurredAt: date("2026-03-01"),
+          category: null,
+          account: { type: "checking", pluggyAccountId: "pluggy-checking" },
+        },
+      ],
+      goals: [],
+      nextRecurrence: null,
+    });
+
+    expect(summary.balanceCents).toBe(-49_842);
+  });
 });
