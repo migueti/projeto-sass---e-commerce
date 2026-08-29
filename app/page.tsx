@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { autoCategorizeTransactions } from "@/app/actions/categories";
 
 type DashboardData = {
   balanceCents: number;
@@ -425,6 +426,28 @@ function CategoryBreakdown({
 }: {
   categories: DashboardData["categories"];
 }) {
+  const [isAutoCategorizing, setIsAutoCategorizing] = useState(false);
+  const [autoCategoryMessage, setAutoCategoryMessage] = useState<string | null>(null);
+  const router = useRouter();
+
+  const handleAutoCategorize = async () => {
+    setIsAutoCategorizing(true);
+    setAutoCategoryMessage(null);
+    try {
+      const result = await autoCategorizeTransactions();
+      setAutoCategoryMessage(result.message);
+      if (result.categorizedCount > 0) {
+        router.refresh();
+      }
+    } catch (error) {
+      setAutoCategoryMessage(
+        error instanceof Error ? error.message : "Erro ao categorizar transações."
+      );
+    } finally {
+      setIsAutoCategorizing(false);
+    }
+  };
+
   let stop = 0;
   const donutBackground = categories.length
     ? `conic-gradient(${categories
@@ -436,6 +459,8 @@ function CategoryBreakdown({
         .join(", ")})`
     : "#eef0ec";
 
+  const hasUncategorized = categories.some((c) => c.name === "Sem categoria");
+
   return (
     <section className="panel category-panel">
       <div className="panel-header">
@@ -443,8 +468,24 @@ function CategoryBreakdown({
           <h3>Despesas por categoria</h3>
           <p>Onde seu dinheiro está indo</p>
         </div>
-        <button className="dots" type="button" aria-label="Mais opções de categorias">•••</button>
+        {hasUncategorized && (
+          <button
+            className="dots"
+            type="button"
+            aria-label="Categorizar automaticamente"
+            onClick={handleAutoCategorize}
+            disabled={isAutoCategorizing}
+            title="Categorizar automaticamente as transações sem categoria"
+          >
+            {isAutoCategorizing ? "⟳" : "•••"}
+          </button>
+        )}
       </div>
+      {autoCategoryMessage && (
+        <div style={{ padding: "12px 16px", fontSize: "14px", color: "#666", borderBottom: "1px solid #eee" }}>
+          {autoCategoryMessage}
+        </div>
+      )}
       <div className="donut-wrap">
         <div className="donut" style={{ background: donutBackground }}>
           <div>
