@@ -499,7 +499,7 @@ function CategoryBreakdown({
         </div>
         <div className="category-list">
           {categories.length ? (
-            categories.slice(0, 4).map((category) => (
+            categories.map((category) => (
               <span key={category.id ?? "uncategorized"}>
                 <i
                   style={{ backgroundColor: category.color ?? "#b8a6ce" }}

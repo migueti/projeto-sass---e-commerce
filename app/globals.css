@@ -408,7 +408,7 @@ button { cursor: pointer; }
 .donut strong, .donut span { display: block; }
 .donut strong { color: #555c55; font-size: 14px; }
 .donut span { margin-top: 4px; color: #a1a79f; font-size: 10px; }
-.category-list { display: grid; flex: 1; gap: 13px; }
+.category-list { display: grid; flex: 1; gap: 13px; max-height: 140px; overflow-y: auto; }
 .category-list span { display: flex; align-items: center; gap: 8px; color: #7d857d; font-size: 10px; }
 .category-list i { width: 7px; height: 7px; border-radius: 50%; }
 .category-list b { margin-left: auto; color: #535b53; font-size: 10px; }
