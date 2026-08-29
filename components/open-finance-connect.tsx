@@ -43,7 +43,8 @@ export function OpenFinanceConnect() {
           body: JSON.stringify({ itemId: item.id }),
         });
         if (!response.ok) {
-          setError("A conta conectou, mas não foi possível importar os dados.");
+          const data = await response.json() as { error?: string };
+          setError(data.error ?? "A conta conectou, mas não foi possível importar os dados.");
           return;
         }
         router.refresh();
