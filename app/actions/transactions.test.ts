@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { UnauthorizedError } from "@/lib/errors";
 
 const mocks = vi.hoisted(() => ({
   requirePaidUser: vi.fn(),
+  requireOwnedAccount: vi.fn(),
+  requireOwnedCategory: vi.fn(),
+  requireOwnedTransaction: vi.fn(),
   accountFindFirst: vi.fn(),
   categoryFindFirst: vi.fn(),
   categoryUpsert: vi.fn(),
@@ -17,6 +21,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/auth", () => ({ requirePaidUser: mocks.requirePaidUser }));
+vi.mock("@/lib/ownership", () => ({
+  requireOwnedAccount: mocks.requireOwnedAccount,
+  requireOwnedCategory: mocks.requireOwnedCategory,
+  requireOwnedTransaction: mocks.requireOwnedTransaction,
+}));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     $transaction: vi.fn(async (callback: (client: unknown) => unknown) => callback({
@@ -69,20 +78,18 @@ describe("createTransaction", () => {
   });
 
   it("rejects an account that is not owned by the authenticated user", async () => {
-    mocks.accountFindFirst.mockResolvedValue(null);
+    mocks.requireOwnedAccount.mockRejectedValue(new UnauthorizedError("Conta não encontrada."));
 
     await expect(createTransaction(createTransactionForm())).rejects.toThrow(
       "Conta não encontrada.",
     );
-    expect(mocks.accountFindFirst).toHaveBeenCalledWith({
-      where: { id: "account-1", userId: "user-1" },
-    });
+    expect(mocks.requireOwnedAccount).toHaveBeenCalledWith("account-1", "user-1");
     expect(mocks.transactionCreate).not.toHaveBeenCalled();
   });
 
   it("rejects a category that is not owned by the authenticated user", async () => {
-    mocks.accountFindFirst.mockResolvedValue({ id: "account-1" });
-    mocks.categoryFindFirst.mockResolvedValue(null);
+    mocks.requireOwnedAccount.mockResolvedValue({ id: "account-1" });
+    mocks.requireOwnedCategory.mockRejectedValue(new UnauthorizedError("Categoria não encontrada."));
 
     const formData = createTransactionForm();
     formData.set("categoryId", "category-1");
@@ -90,9 +97,7 @@ describe("createTransaction", () => {
     await expect(createTransaction(formData)).rejects.toThrow(
       "Categoria não encontrada.",
     );
-    expect(mocks.categoryFindFirst).toHaveBeenCalledWith({
-      where: { id: "category-1", userId: "user-1" },
-    });
+    expect(mocks.requireOwnedCategory).toHaveBeenCalledWith("category-1", "user-1");
     expect(mocks.transactionCreate).not.toHaveBeenCalled();
   });
 });
@@ -104,28 +109,22 @@ describe("transaction ownership mutations", () => {
   });
 
   it("does not delete a transaction that is not owned by the user", async () => {
-    mocks.transactionFindFirst.mockResolvedValue(null);
+    mocks.requireOwnedTransaction.mockRejectedValue(new UnauthorizedError("Lançamento não encontrado."));
 
     await expect(deleteTransaction("transaction-1")).rejects.toThrow(
       "Lançamento não encontrado.",
     );
-    expect(mocks.transactionFindFirst).toHaveBeenCalledWith({
-      where: { id: "transaction-1", userId: "user-1" },
-      select: { goalId: true },
-    });
+    expect(mocks.requireOwnedTransaction).toHaveBeenCalledWith("transaction-1", "user-1");
     expect(mocks.transactionDeleteMany).not.toHaveBeenCalled();
   });
 
   it("does not update a transaction that is not owned by the user", async () => {
-    mocks.transactionFindFirst.mockResolvedValue(null);
+    mocks.requireOwnedTransaction.mockRejectedValue(new UnauthorizedError("Lançamento não encontrado."));
 
     await expect(updateTransaction("transaction-1", createTransactionForm())).rejects.toThrow(
       "Lançamento não encontrado.",
     );
-    expect(mocks.transactionFindFirst).toHaveBeenCalledWith({
-      where: { id: "transaction-1", userId: "user-1" },
-      select: { goalId: true },
-    });
+    expect(mocks.requireOwnedTransaction).toHaveBeenCalledWith("transaction-1", "user-1");
     expect(mocks.transactionUpdateMany).not.toHaveBeenCalled();
   });
 

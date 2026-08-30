@@ -1,26 +1,16 @@
 "use server";
 
-import { z } from "zod";
-
 import { createTransaction as createTransactionUseCase } from "@/lib/application/financial/create-transaction";
 import { requirePaidUser } from "@/lib/auth";
+import { requireOwnedAccount, requireOwnedCategory, requireOwnedTransaction } from "@/lib/ownership";
 import { createPrismaTransactionRepository } from "@/lib/infrastructure/prisma-transaction-repository";
 import { categoryForImportedTransaction } from "@/lib/import-categories";
 import { prisma } from "@/lib/prisma";
 import { withTransactionRetry } from "@/lib/recurrence";
 import { revalidateFinancialPaths, revalidatePaths } from "@/lib/revalidation";
-import { accountSchema, parseBrazilianCents, parseLocalDate, transactionSchema } from "@/lib/validation";
+import { accountSchema, parseBrazilianCents, parseLocalDate, transactionSchema, importedTransactionSchema, importedTransactionsSchema } from "@/lib/validation";
 
 export type AccountActionState = { message: string };
-
-const importedTransactionSchema = z.object({
-  date: z.string(),
-  description: z.string().trim().min(2).max(120),
-  cents: z.number().int().positive().max(2_147_483_647),
-  type: z.enum(["INCOME", "EXPENSE"]),
-});
-
-const importedTransactionsSchema = z.array(importedTransactionSchema).min(1).max(500);
 
 function normalizeTransactionId(id: string) {
   if (typeof id !== "string" || !id.trim()) throw new Error("Lançamento inválido.");
@@ -55,11 +45,9 @@ export async function createTransaction(formData: FormData) {
   const occurredAt = parseLocalDate(result.data.occurredAt);
   if (!occurredAt) throw new Error("Informe uma data válida.");
 
-  const account = await prisma.financialAccount.findFirst({ where: { id: result.data.accountId, userId: user.id } });
-  if (!account) throw new Error("Conta não encontrada.");
+  const account = await requireOwnedAccount(result.data.accountId, user.id);
   if (result.data.categoryId) {
-    const category = await prisma.category.findFirst({ where: { id: result.data.categoryId, userId: user.id } });
-    if (!category) throw new Error("Categoria não encontrada.");
+    await requireOwnedCategory(result.data.categoryId, user.id);
   }
 
   await createTransactionUseCase(
@@ -99,11 +87,7 @@ export async function importTransactions(
     };
   });
 
-  const account = await prisma.financialAccount.findFirst({
-    where: { id: accountId, userId: user.id },
-    select: { id: true },
-  });
-  if (!account) throw new Error("Conta não encontrada.");
+  const account = await requireOwnedAccount(accountId, user.id);
 
   const result = await prisma.$transaction(async (transactionClient) => {
     const categoryIds = new Map<string, string>();
@@ -193,6 +177,7 @@ export async function deleteAccount(id: string) {
   const accountId = normalizeTransactionId(id);
 
   await withTransactionRetry(() => prisma.$transaction(async (transaction) => {
+    // Note: In transaction context, we use prisma directly since requireOwnedAccount uses top-level prisma
     const account = await transaction.financialAccount.findFirst({
       where: { id: accountId, userId: user.id },
       select: { id: true },
@@ -219,12 +204,8 @@ export async function deleteTransaction(id: string) {
   const user = await requirePaidUser();
   const transactionId = normalizeTransactionId(id);
 
-  const transaction = await prisma.transaction.findFirst({
-    where: { id: transactionId, userId: user.id },
-    select: { goalId: true },
-  });
-  if (!transaction) throw new Error("Lançamento não encontrado.");
-  if (transaction.goalId) throw new Error("Aportes de metas devem ser excluídos pela tela de metas.");
+  const txn = await requireOwnedTransaction(transactionId, user.id);
+  if (txn.goalId) throw new Error("Aportes de metas devem ser excluídos pela tela de metas.");
 
   const result = await prisma.transaction.deleteMany({ where: { id: transactionId, userId: user.id } });
   if (result.count !== 1) throw new Error("Lançamento não encontrado.");
@@ -235,11 +216,7 @@ export async function deleteTransaction(id: string) {
 export async function updateTransaction(id: string, formData: FormData) {
   const user = await requirePaidUser();
   const transactionId = normalizeTransactionId(id);
-  const current = await prisma.transaction.findFirst({
-    where: { id: transactionId, userId: user.id },
-    select: { goalId: true },
-  });
-  if (!current) throw new Error("Lançamento não encontrado.");
+  const current = await requireOwnedTransaction(transactionId, user.id);
   if (current.goalId) throw new Error("Aportes de metas não podem ser editados.");
 
   const result = transactionSchema.safeParse(Object.fromEntries(formData));

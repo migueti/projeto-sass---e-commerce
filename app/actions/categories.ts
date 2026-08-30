@@ -1,21 +1,13 @@
 "use server";
 
 import { Prisma } from "@prisma/client";
-import { z } from "zod";
 
 import { requirePaidUser } from "@/lib/auth";
+import { requireOwnedCategory } from "@/lib/ownership";
 import { categoryForImportedTransaction } from "@/lib/import-categories";
 import { prisma } from "@/lib/prisma";
 import { revalidatePaths } from "@/lib/revalidation";
-
-const categorySchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, "Informe o nome da categoria.")
-    .max(50, "Use no máximo 50 caracteres no nome da categoria."),
-  color: z.string().regex(/^#[0-9a-f]{6}$/i, "Escolha uma cor válida."),
-});
+import { categorySchema } from "@/lib/validation";
 
 export async function createCategory(formData: FormData) {
   const user = await requirePaidUser();
@@ -40,6 +32,7 @@ export async function createCategory(formData: FormData) {
 
 export async function deleteCategory(id: string) {
   const user = await requirePaidUser();
+  await requireOwnedCategory(id, user.id);
   const result = await prisma.category.deleteMany({ where: { id, userId: user.id } });
   if (result.count !== 1) throw new Error("Categoria não encontrada.");
   revalidatePaths("/categorias", "/lancamentos", "/recorrencias", "/");

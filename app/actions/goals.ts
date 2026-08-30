@@ -1,32 +1,15 @@
 "use server";
 
-import { z } from "zod";
-
 import { FinancialGoal } from "@/lib/domain/financial/financial-goal";
 import { Money } from "@/lib/domain/financial/money";
 import { requirePaidUser } from "@/lib/auth";
+import { requireOwnedAccount, requireOwnedGoal } from "@/lib/ownership";
 import { prisma } from "@/lib/prisma";
 import { withTransactionRetry } from "@/lib/recurrence";
-import { parseBrazilianCents, parseLocalDate } from "@/lib/validation";
+import { parseBrazilianCents, parseLocalDate, goalSchema, goalContributionSchema } from "@/lib/validation";
 import { revalidatePaths } from "@/lib/revalidation";
 
 const MAX_ACTIVE_GOALS = 100;
-
-const goalSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, "Informe o nome da meta.")
-    .max(100, "Use no máximo 100 caracteres no nome da meta."),
-  target: z.string().min(1, "Informe o valor alvo."),
-  saved: z.string().optional(),
-  deadline: z.string().optional(),
-  accountId: z.string().optional(),
-});
-
-const contributionSchema = z.object({
-  amount: z.string().trim().min(1, "Informe o valor do aporte."),
-});
 
 export async function createGoal(formData: FormData) {
   const user = await requirePaidUser();
@@ -53,10 +36,7 @@ export async function createGoal(formData: FormData) {
 
   let accountId: string | null = null;
   if (result.data.accountId) {
-    const account = await prisma.financialAccount.findFirst({
-      where: { id: result.data.accountId, userId: user.id },
-    });
-    if (!account) throw new Error("Conta não encontrada.");
+    const account = await requireOwnedAccount(result.data.accountId, user.id);
     accountId = account.id;
   }
 
@@ -98,12 +78,13 @@ export async function createGoal(formData: FormData) {
 
 export async function deleteGoal(id: string) {
   const user = await requirePaidUser();
-  const goal = await prisma.financialGoal.findFirst({
+  const goal = await requireOwnedGoal(id, user.id);
+  // Check for contributions
+  const goalWithContributions = await prisma.financialGoal.findFirst({
     where: { id, userId: user.id },
     select: { _count: { select: { contributions: true } } },
   });
-  if (!goal) throw new Error("Meta não encontrada.");
-  if (goal._count.contributions > 0)
+  if (goalWithContributions?._count.contributions ?? 0 > 0)
     throw new Error("Exclua os aportes da meta antes de excluir a meta.");
 
   const result = await prisma.financialGoal.deleteMany({
@@ -115,7 +96,7 @@ export async function deleteGoal(id: string) {
 
 export async function addGoalContribution(id: string, formData: FormData) {
   const user = await requirePaidUser();
-  const result = contributionSchema.safeParse(Object.fromEntries(formData));
+  const result = goalContributionSchema.safeParse(Object.fromEntries(formData));
   if (!result.success)
     throw new Error(result.error.issues[0]?.message ?? "Confira o valor do aporte.");
 
