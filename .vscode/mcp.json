@@ -67,18 +67,6 @@
 				"PLUGGY_API_BASE": "${env:PLUGGY_API_BASE}"
 			},
 			"type": "stdio"
-		},
-		"io.github.pgEdge/postgres-mcp": {
-			"type": "stdio",
-			"command": "docker",
-			"args": [
-				"run",
-				"-i",
-				"--rm",
-				"ghcr.io/pgedge/postgres-mcp:latest"
-			],
-			"gallery": "https://api.mcp.github.com",
-			"version": "1.0.0"
 		}
 	}
 }

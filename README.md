@@ -1,193 +1,262 @@
 # nuvem.
 
-Aplicativo de controle financeiro pessoal em português, construído com Next.js App Router. Permite gerenciar contas, categorias, lançamentos, recorrências, metas financeiras, importação de extratos e exportação de relatórios.
+Aplicação de controle financeiro pessoal em português, construída com Next.js App Router e Prisma. O sistema permite registrar contas, categorias, transações, recorrências, metas, importar extratos e acompanhar o saldo por período com autenticação e cobrança por assinatura.
 
-O projeto também integra Mercado Pago para liberar o acesso pago e Pluggy para conectar instituições financeiras por Open Finance.
+## Visão geral
+
+A aplicação foi estruturada como um produto financeiro full-stack com:
+
+- autenticação por credenciais usando NextAuth
+- proteção de rotas e acesso por sessão
+- painel financeiro com resumo de saldo, receitas, despesas e metas
+- módulos de contas, categorias, lançamentos e recorrências
+- assinatura paga com Mercado Pago
+- integração com Open Finance via Pluggy
+- exportação de relatórios em Excel/PDF
 
 ## Stack
 
-- Next.js 16 e React 19
-- TypeScript, ESLint e Vitest
-- Prisma ORM com PostgreSQL em produção
-- NextAuth Credentials com sessões JWT
-- Zod para validação de entradas
+- Next.js 16
+- React 19
+- TypeScript
+- Prisma ORM
+- PostgreSQL como banco recomendado em produção
+- NextAuth com Credentials + JWT
+- Zod para validação
 - Mercado Pago Checkout Pro
-- Pluggy Connect e `pluggy-js`
-- ExcelJS, JSZip, PDFKit e `pdf-parse`
+- Pluggy Connect
+- Vitest para testes
+- ESLint para lint
 
 ## Requisitos
 
-- Node.js 20 ou superior
+- Node.js 20+
 - npm
+- Docker e Docker Compose (para desenvolvimento local com PostgreSQL)
 
-Bun também pode ser usado dentro do pacote independente `pluggy mcp/`.
+## Começando (Desenvolvimento Local)
 
-## Desenvolvimento local
-Para desenvolvimento local, você pode usar SQLite ou PostgreSQL. Para o deploy no Render, use PostgreSQL com uma URL externa persistente.
+### Opção 1: Setup Automático (Recomendado)
+
+Execute o script de setup para inicializar tudo automaticamente:
+
+```bash
+bash scripts/setup.sh
+```
+
+Este script irá:
+- Instalar dependências Node.js
+- Iniciar PostgreSQL com Docker Compose
+- Aplicar migrações do Prisma
+- Gerar Prisma Client
+
+Após o setup, inicie o servidor:
+
+```bash
+npm run dev
+# ou use o script
+bash scripts/dev.sh
+```
+
+### Opção 2: Setup Manual
+
+1. Configure o ambiente:
+
+```bash
+cp .env.example .env
+```
+
+2. Instale as dependências:
+
 ```bash
 npm install
-cp .env.example .env
-npm run db:generate
+```
+
+3. Inicie o banco de dados:
+
+```bash
+docker-compose up -d
+```
+
+4. Aplique as migrações:
+
+```bash
 npm run db:migrate
+```
+
+5. Inicie o servidor de desenvolvimento:
+
+```bash
 npm run dev
 ```
 
-Abra <http://localhost:3000>. Se a porta estiver ocupada, use outra:
+A aplicação fica disponível em **http://localhost:3000**.
+
+### Parar o Banco de Dados
 
 ```bash
-PORT=3001 npm run dev
+docker-compose down
 ```
 
-O arquivo `.env` é carregado automaticamente pelo Next.js e não deve ser versionado.
+### Limpar Dados e Reiniciar
+
+```bash
+docker-compose down -v  # Remove volume de dados
+docker-compose up -d    # Inicia novamente
+npm run db:migrate      # Reaplica migrações
+```
 
 ## Variáveis de ambiente
 
-| Variável | Obrigatória | Descrição |
-| --- | --- | --- |
-| `DATABASE_URL` | sim | Banco Prisma. Em produção: PostgreSQL (Render) |
-| `NEXTAUTH_SECRET` | sim | Segredo forte para assinar sessões |
-| `NEXTAUTH_URL` | sim | URL pública exata da aplicação |
-| `APP_URL` | pagamentos | URL pública usada nos callbacks do Mercado Pago |
-| `ADMIN_EMAIL` | sim | E-mail que recebe acesso administrativo |
-| `MERCADOPAGO_ACCESS_TOKEN` | pagamentos | Token privado do Mercado Pago |
-| `MERCADOPAGO_WEBHOOK_SECRET` | pagamentos | Segredo para validar webhook de pagamento |
-| `MERCADOPAGO_USE_SANDBOX` | pagamentos | `true` para token `TEST-`, `false` para `APP_USR-` |
-| `NUVEM_PLAN_PRICE` | não | Fallback inicial do preço em BRL |
-| `PLUGGY_CLIENT_ID` | Open Finance | Client ID privado do painel Pluggy |
-| `PLUGGY_CLIENT_SECRET` | Open Finance | Client Secret privado do painel Pluggy |
-| `PLUGGY_API_BASE` | não | Padrão: `https://api.pluggy.ai` |
-| `PLUGGY_WEBHOOK_URL` | não | URL HTTPS pública de `/api/webhooks/pluggy` |
-| `SERVER_ACTION_ALLOWED_ORIGINS` | não | Hosts extras atrás de proxy, separados por vírgula |
+O arquivo [.env.example](.env.example) contém as variáveis principais. As mais relevantes são:
 
-Gere um segredo para o NextAuth com:
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/nuvem?schema=public"
+NEXTAUTH_SECRET="replace-with-a-long-random-secret"
+NEXTAUTH_URL="http://localhost:3000"
+APP_URL=""
+ADMIN_EMAIL="admin@example.com"
+
+MERCADOPAGO_ACCESS_TOKEN=""
+MERCADOPAGO_WEBHOOK_SECRET=""
+MERCADOPAGO_USE_SANDBOX="true"
+NUVEM_PLAN_PRICE="29.90"
+
+PLUGGY_CLIENT_ID=""
+PLUGGY_CLIENT_SECRET=""
+PLUGGY_API_BASE="https://api.pluggy.ai"
+PLUGGY_WEBHOOK_URL="https://your-app.onrender.com/api/webhooks/pluggy"
+PLUGGY_AVOID_DUPLICATES="true"
+NEXT_PUBLIC_PLUGGY_INCLUDE_SANDBOX="false"
+```
+
+Dicas:
+
+- nunca versionar o arquivo `.env` real
+- `NEXTAUTH_SECRET` deve ser gerado com valor forte
+- `APP_URL` e `NEXTAUTH_URL` devem apontar para a URL pública real em produção
+- credenciais do Mercado Pago e Pluggy devem permanecer apenas no ambiente do servidor
+
+Para gerar um secret do NextAuth:
 
 ```bash
 openssl rand -base64 32
 ```
 
-Nunca coloque `PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`, tokens de pagamento ou qualquer API key no frontend, no Git ou neste README. Uma API key temporária da Pluggy deve ser considerada comprometida se for publicada e substituída no painel do provedor.
+## Funcionalidades principais
 
-## Funcionalidades
+### Financeiro
 
-### Finanças pessoais
-
-- Dashboard com saldo inicial, receitas, despesas e filtros por período.
-- Contas correntes, poupança e carteira.
-- Categorias personalizadas.
-- Lançamentos com valores persistidos em centavos.
-- Datas civis `YYYY-MM-DD` sem deslocamento de fuso.
-- Lançamentos recorrentes semanais, mensais e anuais.
-- Metas financeiras e contribuições transacionais.
-- Importação de extratos e exportação em XLSX/PDF/ZIP.
+- dashboard com saldo, receitas, despesas e fluxo por período
+- contas com saldos iniciais e tipo de conta
+- categorias personalizadas
+- transações com valores persistidos em centavos
+- recorrências mensais, semanais e anuais
+- metas financeiras com contribuições e progresso
+- importação de extrato
+- exportação de relatórios em Excel/PDF
 
 ### Acesso pago
 
-O cadastro cria a conta e categorias iniciais. O usuário sem acesso é enviado para `/assinar`. O Checkout Pro é criado no servidor e o acesso só é liberado após o webhook assinado do Mercado Pago confirmar pagamento aprovado.
+O fluxo de assinatura é controlado pelo status `hasPaid` do usuário:
 
-Administradores são definidos pelo papel `ADMIN` ou por `ADMIN_EMAIL` e podem alterar o preço do plano em `/admin`.
+- usuários sem acesso são redirecionados para `/assinar`
+- checkout é gerado no backend via Mercado Pago
+- o acesso é liberado somente após a confirmação do webhook
+- administradores podem gerenciar preço do plano e acessos
 
 ### Pluggy Open Finance
 
-O admin possui um Playground Pluggy em `/admin` para:
+A integração Pluggy permite:
 
-- listar instituições e status dos conectores;
-- visualizar conectores sandbox;
-- gerar Connect Token server-side;
-- abrir o widget Pluggy Connect;
-- testar o fluxo de consentimento bancário.
+- criar token de conexão no servidor
+- abrir o widget de consentimento bancário
+- sincronizar contas e transações vinculadas ao usuário
+- validar ownership e evitar duplicação de itens originados do provedor
 
-O endpoint `POST /api/connect-token` deriva `clientUserId` da sessão e nunca aceita credenciais do navegador. O webhook `POST /api/webhooks/pluggy` valida o formato do evento e responde rapidamente para `item/created`, `item/updated`, `item/error`, `transactions/created`, `transactions/updated` e `transactions/deleted`.
+## Estrutura principal
 
-As credenciais reais devem ser configuradas no ambiente do servidor:
-
-```env
-PLUGGY_CLIENT_ID=seu-client-id-real
-PLUGGY_CLIENT_SECRET=seu-client-secret-real
-PLUGGY_API_BASE=https://api.pluggy.ai
-PLUGGY_WEBHOOK_URL=https://seu-dominio.com/api/webhooks/pluggy
-PLUGGY_AVOID_DUPLICATES=true
-NEXT_PUBLIC_PLUGGY_INCLUDE_SANDBOX=false
+```text
+app/                # páginas, rotas e handlers do App Router
+components/         # componentes reutilizáveis da UI
+lib/                # regras de negócio, validação, dashboard e integrações
+prisma/             # schema e migrações do Prisma
+public/             # assets públicos
+proxy.ts            # regras de proteção de rotas por middleware
+auth.ts             # configuração do NextAuth
+package.json        # scripts e dependências
 ```
 
-Para testar o conector MyPluggy em ambiente sandbox, use `PLUGGY_AVOID_DUPLICATES=false` e `NEXT_PUBLIC_PLUGGY_INCLUDE_SANDBOX=true`. Em produção com instituições reais, mantenha duplicidades bloqueadas.
+## Rotas relevantes
 
-## Rotas principais
+- `/` — dashboard principal
+- `/login` — autenticação
+- `/cadastro` — cadastro de usuário
+- `/assinar` — página de assinatura
+- `/contas` — contas financeiras
+- `/categorias` — categorias
+- `/lancamentos` — lançamentos e importação
+- `/recorrencias` — recorrências
+- `/metas` — metas financeiras
+- `/admin` — painel administrativo
+- `/api/health` — health check público
+- `/api/payments/webhook` — webhook do Mercado Pago
+- `/api/webhooks/pluggy` — webhook do Pluggy
 
-| Rota | Uso |
-| --- | --- |
-| `/` | Dashboard protegido |
-| `/login` | Login |
-| `/cadastro` | Cadastro |
-| `/assinar` | Checkout e status do acesso |
-| `/contas` | Contas e conexão Pluggy |
-| `/categorias` | Categorias |
-| `/lancamentos` | Lançamentos e importação |
-| `/recorrencias` | Recorrências |
-| `/metas` | Metas financeiras |
-| `/admin` | Administração e Playground Pluggy |
-| `/api/health` | Readiness público do app e banco |
-
-## API e segurança
-
-- Dados financeiros são sempre filtrados pelo usuário da sessão.
-- Mutations usam Server Actions ou Route Handlers autenticados.
-- Rotas administrativas exigem `requireAdminUser()`.
-- Dados privados usam `Cache-Control: private, no-store, max-age=0`.
-- Webhooks não expõem detalhes internos e usam `Cache-Control: no-store`.
-- Valores monetários são inteiros em centavos, nunca decimais no banco.
-- O health check retorna `200` com banco disponível e `503` sem detalhes internos quando o banco está indisponível.
-
-## Comandos
+## Scripts disponíveis
 
 ```bash
-npm run dev          # desenvolvimento
-npm run build        # build de produção
-npm run start        # inicia o build de produção
-npm test             # suíte Vitest
-npm run typecheck    # TypeScript
-npm run lint         # ESLint
-npm run db:generate  # gera Prisma Client
-npm run db:migrate   # migrações locais
-npm run db:deploy    # migrações de produção/CI
-npm run mcp:check    # verifica o servidor engenharia-local
+npm run dev            # inicia o app em desenvolvimento
+npm run build          # build de produção
+npm run start          # inicia a build de produção
+npm test              # executa a suíte Vitest
+npm run typecheck     # valida TypeScript
+npm run lint          # executa ESLint
+npm run db:generate   # gera o Prisma Client
+npm run db:migrate    # aplica migrações locais
+npm run db:deploy     # aplica migrações em ambiente de deploy
+npm run mcp:check     # valida servidor MCP local
 ```
 
-Teste um arquivo específico:
+Para rodar um teste específico:
 
 ```bash
 npx vitest run --configLoader runner lib/validation.test.ts
 ```
 
-Antes de publicar:
+Antes de publicar, a validação recomendada é:
 
 ```bash
 npm test && npm run typecheck && npm run lint && npm run build
 ```
 
-## MCP Pluggy independente
+## Segurança e boas práticas
 
-O servidor MCP fica isolado em [`pluggy mcp/`](pluggy%20mcp/). Ele oferece 18 tools para a API Pluggy, incluindo conectores, itens, contas, transações, identidades, investimentos e payment intents.
+- os dados financeiros são filtrados pelo usuário da sessão
+- acessos administrativos exigem papel/identidade válida
+- valores monetários são armazenados em centavos (`Int`)
+- entradas de formulário e API são validadas com Zod
+- webhooks e rotas sensíveis não expõem detalhes internos
+- não versionar arquivos de ambiente, tokens, sessão ou dados financeiros
+
+## Deploy
+
+Para uso em produção, o projeto recomenda PostgreSQL em vez de SQLite. O build e start típicos em deploys baseados em Node são:
 
 ```bash
-cd "pluggy mcp"
 npm install
-npm run typecheck
+npm run db:generate
+npm run db:deploy
 npm run build
-npx --yes bun test
 npm run start
 ```
 
-O arquivo `.vscode/mcp.json` já contém as configurações de `engenharia-local`, `sequential-thinking`, `context7` e `pluggy`. As credenciais do MCP Pluggy são solicitadas por inputs secretos do VS Code.
+Em plataformas como Render, configure as variáveis de ambiente do serviço web e use a URL pública HTTPS correta para:
 
-## Deploy no Render
+- `NEXTAUTH_URL`
+- `APP_URL`
+- `PLUGGY_WEBHOOK_URL`
 
-Configure as variáveis de ambiente no serviço Web e use:
+## Licença
 
-- **Build Command:** `npm install && npm run db:generate && npm run db:deploy && npm run build`
-- **Start Command:** `npm run start`
-
-Use `NEXTAUTH_URL` e `APP_URL` com a URL pública HTTPS do Render. Para webhooks Pluggy, configure `PLUGGY_WEBHOOK_URL` com essa mesma URL e o caminho `/api/webhooks/pluggy`. Para produção, prefira PostgreSQL em vez de SQLite; o SQLite local é útil apenas para desenvolvimento e não persiste corretamente em instâncias efêmeras do Render.
-
-## Dados locais e licença
-
-Não versione `.env`, `prisma/dev.db`, arquivos auxiliares SQLite, tokens, hashes, sessões ou dados financeiros. A licença do aplicativo está em [`LICENSE`](LICENSE). O MCP Pluggy mantém os créditos e a licença MIT do trabalho base da CodeSpar; consulte [`pluggy mcp/LICENSE`](pluggy%20mcp/LICENSE).
+Consulte o arquivo [LICENSE](LICENSE).
